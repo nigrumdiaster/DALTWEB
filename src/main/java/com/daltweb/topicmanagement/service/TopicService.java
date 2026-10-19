@@ -76,8 +76,10 @@ public class TopicService {
         LocalDateTime now = LocalDateTime.now();
         boolean isAdmin = SecurityUtils.hasRole(RoleType.ROLE_ADMIN) || SecurityUtils.hasRole(RoleType.ROLE_DEAN);
         if (!isAdmin) {
-            if (period.getStatus() != PeriodStatus.PHASE1_LECTURER_REGISTRATION &&
-                (now.isBefore(period.getLecturerRegStart()) || now.isAfter(period.getLecturerRegEnd()))) {
+            if (period.getStatus() != PeriodStatus.PHASE1_LECTURER_REGISTRATION) {
+                throw new BadRequestException("Đợt đăng ký hiện không ở Giai đoạn 1 (Xây dựng & Phê duyệt đề tài), giảng viên không thể đề xuất đề tài mới!");
+            }
+            if (now.isBefore(period.getLecturerRegStart()) || now.isAfter(period.getLecturerRegEnd())) {
                 throw new BadRequestException("Hiện tại không nằm trong thời gian cho phép giảng viên đăng ký đề tài!");
             }
         }
@@ -157,6 +159,12 @@ public class TopicService {
         topic.setDepartment(department);
         topic.setCoAdvisor(coAdvisor);
 
+        if (topic.getApprovalStatus() == TopicApprovalStatus.APPROVED && !isAdmin) {
+            topic.setApprovalStatus(TopicApprovalStatus.PENDING);
+            topic.setApprovedBy(null);
+            topic.setApprovedAt(null);
+        }
+
         Topic updated = topicRepository.save(topic);
         return mapToDto(updated);
     }
@@ -198,6 +206,11 @@ public class TopicService {
 
         if (topic.getIsAssigned()) {
             throw new BadRequestException("Đề tài đã có nhóm sinh viên đăng ký, không thể xóa!");
+        }
+
+        boolean isAdmin = SecurityUtils.hasRole(RoleType.ROLE_ADMIN) || SecurityUtils.hasRole(RoleType.ROLE_DEAN);
+        if (!isAdmin && topic.getApprovalStatus() == TopicApprovalStatus.APPROVED) {
+            throw new BadRequestException("Đề tài đã được phê duyệt, giảng viên không thể tự ý xóa!");
         }
 
         topicRepository.delete(topic);

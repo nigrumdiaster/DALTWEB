@@ -119,6 +119,9 @@ public class RegistrationPeriodService {
         if (!periodRepository.existsById(id)) {
             throw new ResourceNotFoundException("Không tìm thấy đợt đăng ký với ID: " + id);
         }
+        if (!topicRepository.findByPeriodId(id).isEmpty() || !groupRepository.findByPeriodId(id).isEmpty()) {
+            throw new BadRequestException("Đợt đăng ký này đã phát sinh đề tài hoặc nhóm sinh viên, không thể xóa!");
+        }
         periodRepository.deleteById(id);
     }
 

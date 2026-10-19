@@ -75,6 +75,14 @@ public class StudentGroupService {
             throw new ConflictException("Bạn đã tham gia một nhóm khác trong đợt đăng ký này!");
         }
 
+        LocalDateTime now = LocalDateTime.now();
+        if (period.getStatus() != PeriodStatus.PHASE2_STUDENT_REGISTRATION) {
+            throw new BadRequestException("Chỉ được thành lập nhóm trong Giai đoạn 2 (Sinh viên đăng ký đề tài)!");
+        }
+        if (now.isBefore(period.getStudentRegStart()) || now.isAfter(period.getStudentRegEnd())) {
+            throw new BadRequestException("Hiện tại không nằm trong thời gian cho phép sinh viên thành lập nhóm!");
+        }
+
         long groupCount = groupRepository.count() + 1;
         String groupCode = String.format("GRP-%d-%03d", period.getId(), groupCount);
 
@@ -116,6 +124,14 @@ public class StudentGroupService {
 
         validateLeaderPermission(group, "Chỉ nhóm trưởng mới có quyền thêm thành viên vào nhóm!");
 
+        if (group.getPeriod().getStatus() != PeriodStatus.PHASE2_STUDENT_REGISTRATION) {
+            throw new BadRequestException("Chỉ được thêm thành viên trong Giai đoạn 2 của đợt đăng ký!");
+        }
+
+        if (group.getStatus() == GroupStatus.SUBMITTED || group.getStatus() == GroupStatus.COMPLETED) {
+            throw new BadRequestException("Nhóm đã nộp báo cáo hoặc hoàn thành, không thể thay đổi thành viên!");
+        }
+
         if (group.getMembers().size() >= 3) {
             throw new BadRequestException("Nhóm đã đủ số lượng tối đa (3 sinh viên)!");
         }
@@ -149,6 +165,14 @@ public class StudentGroupService {
 
         validateLeaderPermission(group, "Chỉ nhóm trưởng mới có quyền xóa thành viên!");
 
+        if (group.getPeriod().getStatus() != PeriodStatus.PHASE2_STUDENT_REGISTRATION) {
+            throw new BadRequestException("Chỉ được xóa thành viên trong Giai đoạn 2 của đợt đăng ký!");
+        }
+
+        if (group.getStatus() == GroupStatus.SUBMITTED || group.getStatus() == GroupStatus.COMPLETED) {
+            throw new BadRequestException("Nhóm đã nộp báo cáo hoặc hoàn thành, không thể thay đổi thành viên!");
+        }
+
         GroupMember member = memberRepository.findByGroupIdAndStudentId(groupId, studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Sinh viên không thuộc nhóm này"));
 
@@ -170,8 +194,10 @@ public class StudentGroupService {
         RegistrationPeriod period = group.getPeriod();
         LocalDateTime now = LocalDateTime.now();
 
-        if (period.getStatus() != PeriodStatus.PHASE2_STUDENT_REGISTRATION &&
-            (now.isBefore(period.getStudentRegStart()) || now.isAfter(period.getStudentRegEnd()))) {
+        if (period.getStatus() != PeriodStatus.PHASE2_STUDENT_REGISTRATION) {
+            throw new BadRequestException("Đợt đăng ký hiện không ở Giai đoạn 2 (Sinh viên đăng ký đề tài), sinh viên chưa thể đăng ký đề tài!");
+        }
+        if (now.isBefore(period.getStudentRegStart()) || now.isAfter(period.getStudentRegEnd())) {
             throw new BadRequestException("Hiện tại không nằm trong thời gian cho phép sinh viên đăng ký đề tài!");
         }
 
@@ -217,8 +243,10 @@ public class StudentGroupService {
 
         RegistrationPeriod period = group.getPeriod();
         LocalDateTime now = LocalDateTime.now();
-        if (period.getStatus() != PeriodStatus.PHASE2_STUDENT_REGISTRATION &&
-            (now.isBefore(period.getStudentRegStart()) || now.isAfter(period.getStudentRegEnd()))) {
+        if (period.getStatus() != PeriodStatus.PHASE2_STUDENT_REGISTRATION) {
+            throw new BadRequestException("Đợt đăng ký hiện không ở Giai đoạn 2 (Sinh viên đăng ký đề tài), không thể hủy đăng ký đề tài!");
+        }
+        if (now.isBefore(period.getStudentRegStart()) || now.isAfter(period.getStudentRegEnd())) {
             throw new BadRequestException("Đã hết thời hạn đăng ký/hủy đề tài của sinh viên!");
         }
 
@@ -242,6 +270,11 @@ public class StudentGroupService {
 
         if (group.getTopic() == null) {
             throw new BadRequestException("Nhóm chưa đăng ký đề tài, không thể nộp báo cáo!");
+        }
+
+        RegistrationPeriod period = group.getPeriod();
+        if (period.getStatus() == PeriodStatus.COMPLETED || period.getStatus() == PeriodStatus.CANCELLED) {
+            throw new BadRequestException("Đợt đăng ký đã hoàn thành hoặc bị hủy, không thể nộp hoặc cập nhật báo cáo!");
         }
 
         group.setReportUrl(request.getReportUrl());

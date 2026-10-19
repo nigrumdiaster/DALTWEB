@@ -125,6 +125,10 @@ public class DefenseCouncilService {
             Topic topic = topicRepository.findById(topicId)
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đề tài với ID: " + topicId));
 
+            if (topic.getApprovalStatus() != com.daltweb.topicmanagement.constant.TopicApprovalStatus.APPROVED) {
+                throw new BadRequestException(String.format("Không thể gán đề tài '%s' cho hội đồng vì đề tài chưa được phê duyệt!", topic.getTitleVi()));
+            }
+
             if (councilLecturerIds.contains(topic.getPrimaryAdvisor().getId())) {
                 throw new BadRequestException(String.format("Không thể gán đề tài '%s' cho hội đồng vì GVHD chính (%s) là thành viên của hội đồng này!",
                         topic.getTitleVi(), topic.getPrimaryAdvisor().getFullName()));
@@ -133,6 +137,12 @@ public class DefenseCouncilService {
             if (topic.getCoAdvisor() != null && councilLecturerIds.contains(topic.getCoAdvisor().getId())) {
                 throw new BadRequestException(String.format("Không thể gán đề tài '%s' cho hội đồng vì GV đồng hướng dẫn (%s) là thành viên của hội đồng này!",
                         topic.getTitleVi(), topic.getCoAdvisor().getFullName()));
+            }
+
+            var existingCouncilAssignment = assignmentRepository.findByTopicId(topicId);
+            if (existingCouncilAssignment.isPresent() && !Objects.equals(existingCouncilAssignment.get().getCouncil().getId(), councilId)) {
+                throw new BadRequestException(String.format("Đề tài '%s' đã được phân công cho hội đồng khác (%s)!",
+                        topic.getTitleVi(), existingCouncilAssignment.get().getCouncil().getName()));
             }
 
             StudentGroup group = groupRepository.findByTopicId(topic.getId()).orElse(null);
@@ -170,6 +180,10 @@ public class DefenseCouncilService {
 
         Topic topic = topicRepository.findById(request.getTopicId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đề tài"));
+
+        if (!Boolean.TRUE.equals(assignmentRepository.existsByCouncilIdAndTopicId(councilId, topic.getId()))) {
+            throw new BadRequestException("Đề tài này chưa được phân công bảo vệ tại hội đồng này!");
+        }
 
         if (Objects.equals(topic.getPrimaryAdvisor().getId(), currentUserId) ||
             (topic.getCoAdvisor() != null && Objects.equals(topic.getCoAdvisor().getId(), currentUserId))) {

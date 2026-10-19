@@ -14,6 +14,7 @@ import com.daltweb.topicmanagement.security.SecurityUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -61,6 +62,10 @@ public class ReviewerService {
         Topic topic = topicRepository.findById(request.getTopicId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đề tài"));
 
+        if (topic.getApprovalStatus() != com.daltweb.topicmanagement.constant.TopicApprovalStatus.APPROVED) {
+            throw new BadRequestException("Đề tài chưa được phê duyệt, không thể phân công giảng viên phản biện!");
+        }
+
         User reviewer = userRepository.findById(request.getReviewerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy giảng viên phản biện"));
 
@@ -98,6 +103,11 @@ public class ReviewerService {
         boolean isAdmin = SecurityUtils.hasRole(RoleType.ROLE_ADMIN) || SecurityUtils.hasRole(RoleType.ROLE_DEAN);
         if (!Objects.equals(assignment.getReviewer().getId(), currentUserId) && !isAdmin) {
             throw new ForbiddenException("Bạn không phải là GVPB được phân công cho đề tài này!");
+        }
+
+        if (!isAdmin && assignment.getPeriod().getReviewerDeadline() != null &&
+            LocalDate.now().isAfter(assignment.getPeriod().getReviewerDeadline())) {
+            throw new BadRequestException("Đã quá hạn chót nộp điểm phản biện về Khoa (" + assignment.getPeriod().getReviewerDeadline() + ")!");
         }
 
         assignment.setScore(request.getScore());
