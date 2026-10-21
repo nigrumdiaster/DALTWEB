@@ -7,16 +7,28 @@ services:
     dockerfilePath: ./Dockerfile
     healthCheckPath: /api/departments
     envVars:
-      - key: DB_URL
-        sync: false
+      - key: SPRING_PROFILES_ACTIVE
+        value: render
+      - key: DB_HOST
+        fromDatabase:
+          name: topic-management-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: topic-management-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: topic-management-db
+          property: database
       - key: DB_USERNAME
-        sync: false
+        fromDatabase:
+          name: topic-management-db
+          property: user
       - key: DB_PASSWORD
-        sync: false
-      - key: DB_DRIVER
-        value: com.mysql.cj.jdbc.Driver
-      - key: DB_DIALECT
-        value: org.hibernate.dialect.MySQLDialect
+        fromDatabase:
+          name: topic-management-db
+          property: password
       - key: JWT_SECRET
         sync: false
       - key: SHOW_SQL
@@ -25,3 +37,11 @@ services:
         value: "false"
       - key: JAVA_TOOL_OPTIONS
         value: "-Xmx256m -XX:MaxMetaspaceSize=160m -XX:+UseSerialGC -Xss512k"
+
+databases:
+  - name: topic-management-db
+    plan: free
+    region: singapore
+    databaseName: topic_management
+    user: topic_management
+    ipAllowList: []
