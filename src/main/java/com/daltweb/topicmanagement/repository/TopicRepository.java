@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Locale;
 
 @Repository
 public interface TopicRepository extends JpaRepository<Topic, Long> {
@@ -23,12 +24,18 @@ public interface TopicRepository extends JpaRepository<Topic, Long> {
            "(:departmentId IS NULL OR t.department.id = :departmentId) AND " +
            "(:status IS NULL OR t.approvalStatus = :status) AND " +
            "(:isAssigned IS NULL OR t.isAssigned = :isAssigned) AND " +
-           "(CAST(:keyword AS String) IS NULL OR LOWER(t.titleVi) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')) OR " +
-           "LOWER(t.titleEn) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')) OR " +
-           "LOWER(t.primaryAdvisor.fullName) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')))")
-    List<Topic> filterTopics(@Param("periodId") Long periodId,
+           "(LOWER(t.titleVi) LIKE :pattern OR " +
+           "LOWER(t.titleEn) LIKE :pattern OR " +
+           "LOWER(t.primaryAdvisor.fullName) LIKE :pattern)")
+    List<Topic> filterTopicsByPattern(@Param("periodId") Long periodId,
                              @Param("departmentId") Long departmentId,
                              @Param("status") TopicApprovalStatus status,
                              @Param("isAssigned") Boolean isAssigned,
-                             @Param("keyword") String keyword);
+                             @Param("pattern") String pattern);
+
+    default List<Topic> filterTopics(Long periodId, Long departmentId, TopicApprovalStatus status,
+                                    Boolean isAssigned, String keyword) {
+        String pattern = "%" + (keyword == null ? "" : keyword.toLowerCase(Locale.ROOT)) + "%";
+        return filterTopicsByPattern(periodId, departmentId, status, isAssigned, pattern);
+    }
 }

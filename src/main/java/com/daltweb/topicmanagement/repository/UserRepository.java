@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 @Repository
@@ -24,10 +25,15 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u FROM User u WHERE " +
            "(:role IS NULL OR u.role = :role) AND " +
            "(:departmentId IS NULL OR u.department.id = :departmentId) AND " +
-           "(CAST(:keyword AS String) IS NULL OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')) OR " +
-           "LOWER(u.username) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')) OR " +
-           "LOWER(u.code) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')))")
-    List<User> searchUsers(@Param("role") RoleType role,
+           "(LOWER(u.fullName) LIKE :pattern OR " +
+           "LOWER(u.username) LIKE :pattern OR " +
+           "LOWER(u.code) LIKE :pattern)")
+    List<User> searchUsersByPattern(@Param("role") RoleType role,
                            @Param("departmentId") Long departmentId,
-                           @Param("keyword") String keyword);
+                           @Param("pattern") String pattern);
+
+    default List<User> searchUsers(RoleType role, Long departmentId, String keyword) {
+        String pattern = "%" + (keyword == null ? "" : keyword.toLowerCase(Locale.ROOT)) + "%";
+        return searchUsersByPattern(role, departmentId, pattern);
+    }
 }
