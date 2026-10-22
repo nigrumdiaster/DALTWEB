@@ -24,9 +24,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u FROM User u WHERE " +
            "(:role IS NULL OR u.role = :role) AND " +
            "(:departmentId IS NULL OR u.department.id = :departmentId) AND " +
-           "(:keyword IS NULL OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-           "LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-           "LOWER(u.code) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+           "(CAST(:keyword AS String) IS NULL OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')) OR " +
+           "LOWER(u.username) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')) OR " +
+           "LOWER(u.code) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')))")
     List<User> searchUsers(@Param("role") RoleType role,
                            @Param("departmentId") Long departmentId,
                            @Param("keyword") String keyword);

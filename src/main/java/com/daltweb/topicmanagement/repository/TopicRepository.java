@@ -23,9 +23,9 @@ public interface TopicRepository extends JpaRepository<Topic, Long> {
            "(:departmentId IS NULL OR t.department.id = :departmentId) AND " +
            "(:status IS NULL OR t.approvalStatus = :status) AND " +
            "(:isAssigned IS NULL OR t.isAssigned = :isAssigned) AND " +
-           "(:keyword IS NULL OR LOWER(t.titleVi) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-           "LOWER(t.titleEn) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-           "LOWER(t.primaryAdvisor.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+           "(CAST(:keyword AS String) IS NULL OR LOWER(t.titleVi) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')) OR " +
+           "LOWER(t.titleEn) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')) OR " +
+           "LOWER(t.primaryAdvisor.fullName) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')))")
     List<Topic> filterTopics(@Param("periodId") Long periodId,
                              @Param("departmentId") Long departmentId,
                              @Param("status") TopicApprovalStatus status,
