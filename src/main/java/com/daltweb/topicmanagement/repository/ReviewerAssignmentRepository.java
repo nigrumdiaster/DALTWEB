@@ -11,6 +11,7 @@ import java.util.Optional;
 
 @Repository
 public interface ReviewerAssignmentRepository extends JpaRepository<ReviewerAssignment, Long> {
+    void deleteByTopicId(Long topicId);
     Page<ReviewerAssignment> findByPeriodIdAndTopicIdIn(Long periodId, List<Long> topicIds, Pageable pageable);
 
     Optional<ReviewerAssignment> findByTopicId(Long topicId);
@@ -19,4 +20,5 @@ public interface ReviewerAssignmentRepository extends JpaRepository<ReviewerAssi
     Page<ReviewerAssignment> findByPeriodId(Long periodId, Pageable pageable);
 
     Page<ReviewerAssignment> findByReviewerId(Long reviewerId, Pageable pageable);
+
 }

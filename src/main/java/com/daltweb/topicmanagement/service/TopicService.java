@@ -3,6 +3,7 @@ package com.daltweb.topicmanagement.service;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
 import com.daltweb.topicmanagement.constant.PeriodStatus;
+import com.daltweb.topicmanagement.constant.GroupStatus;
 import com.daltweb.topicmanagement.constant.RoleType;
 import com.daltweb.topicmanagement.constant.TopicApprovalStatus;
 import com.daltweb.topicmanagement.dto.topic.TopicApprovalRequest;
@@ -22,6 +23,10 @@ import com.daltweb.topicmanagement.repository.RegistrationPeriodRepository;
 import com.daltweb.topicmanagement.repository.StudentGroupRepository;
 import com.daltweb.topicmanagement.repository.TopicRepository;
 import com.daltweb.topicmanagement.repository.UserRepository;
+import com.daltweb.topicmanagement.repository.GradeRepository;
+import com.daltweb.topicmanagement.repository.FinalResultRepository;
+import com.daltweb.topicmanagement.repository.ReviewerAssignmentRepository;
+import com.daltweb.topicmanagement.repository.CouncilTopicAssignmentRepository;
 import com.daltweb.topicmanagement.security.SecurityUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,13 +45,23 @@ public class TopicService {
     private final RegistrationPeriodRepository periodRepository;
     private final UserRepository userRepository;
     private final StudentGroupRepository groupRepository;
+    private final GradeRepository gradeRepository;
+    private final FinalResultRepository finalResultRepository;
+    private final ReviewerAssignmentRepository reviewerRepository;
+    private final CouncilTopicAssignmentRepository councilTopicRepository;
 
-    public TopicService(TopicRepository topicRepository, DepartmentRepository departmentRepository, RegistrationPeriodRepository periodRepository, UserRepository userRepository, StudentGroupRepository groupRepository) {
+    public TopicService(TopicRepository topicRepository, DepartmentRepository departmentRepository, RegistrationPeriodRepository periodRepository, UserRepository userRepository, StudentGroupRepository groupRepository,
+                        GradeRepository gradeRepository, FinalResultRepository finalResultRepository,
+                        ReviewerAssignmentRepository reviewerRepository, CouncilTopicAssignmentRepository councilTopicRepository) {
         this.topicRepository = topicRepository;
         this.departmentRepository = departmentRepository;
         this.periodRepository = periodRepository;
         this.userRepository = userRepository;
         this.groupRepository = groupRepository;
+        this.gradeRepository = gradeRepository;
+        this.finalResultRepository = finalResultRepository;
+        this.reviewerRepository = reviewerRepository;
+        this.councilTopicRepository = councilTopicRepository;
     }
 
     @Transactional(readOnly = true)
@@ -130,8 +145,15 @@ public class TopicService {
             throw new ForbiddenException("Bạn không có quyền chỉnh sửa đề tài này!");
         }
 
-        if (topic.getIsAssigned()) {
+        if (Boolean.TRUE.equals(topic.getIsAssigned()) && !isAdmin) {
             throw new BadRequestException("Đề tài đã có nhóm sinh viên đăng ký, không thể chỉnh sửa!");
+        }
+
+        if (isAdmin && !Objects.equals(request.getMaxStudents(), topic.getMaxStudents())) {
+            groupRepository.findByTopicId(id).ifPresent(group -> {
+                if (request.getMaxStudents() != null && request.getMaxStudents() < group.getMembers().size())
+                    throw new BadRequestException("Số sinh viên tối đa không được nhỏ hơn số thành viên của nhóm đã đăng ký!");
+            });
         }
 
         Department department = departmentRepository.findById(request.getDepartmentId())
@@ -169,21 +191,14 @@ public class TopicService {
         Topic topic = topicRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đề tài với ID: " + id));
 
-        if (topic.getPeriod().getStatus() != PeriodStatus.PHASE1_REVIEWING) {
-            throw new BadRequestException("Chỉ được phê duyệt đề tài trong giai đoạn duyệt danh sách đề tài!");
-        }
+        boolean isAdmin = SecurityUtils.hasRole(RoleType.ROLE_ADMIN) || SecurityUtils.hasRole(RoleType.ROLE_DEAN);
+        if (!isAdmin) throw new ForbiddenException("Chỉ Admin/Trưởng khoa được phê duyệt cuối cùng!");
+        if (Boolean.TRUE.equals(topic.getIsAssigned()) && request.getApprovalStatus() != TopicApprovalStatus.APPROVED)
+            throw new BadRequestException("Đề tài đã có nhóm đăng ký, không thể thu hồi phê duyệt hoặc từ chối!");
 
         Long currentUserId = SecurityUtils.getCurrentUserId();
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin người dùng"));
-
-        boolean isDeptHead = topic.getDepartment().getHeadLecturer() != null &&
-                Objects.equals(topic.getDepartment().getHeadLecturer().getId(), currentUserId);
-        boolean isAdmin = SecurityUtils.hasRole(RoleType.ROLE_ADMIN) || SecurityUtils.hasRole(RoleType.ROLE_DEAN);
-
-        if (!isDeptHead && !isAdmin) {
-            throw new ForbiddenException("Chỉ Trưởng bộ môn phụ trách hoặc Ban chủ nhiệm Khoa mới có quyền phê duyệt đề tài này!");
-        }
 
         topic.setApprovalStatus(request.getApprovalStatus());
         topic.setApprovedBy(currentUser);
@@ -203,15 +218,31 @@ public class TopicService {
         Topic topic = topicRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đề tài với ID: " + id));
 
-        if (topic.getIsAssigned()) {
-            throw new BadRequestException("Đề tài đã có nhóm sinh viên đăng ký, không thể xóa!");
-        }
-
         boolean isAdmin = SecurityUtils.hasRole(RoleType.ROLE_ADMIN) || SecurityUtils.hasRole(RoleType.ROLE_DEAN);
+        if (!isAdmin && !Objects.equals(topic.getPrimaryAdvisor().getId(), SecurityUtils.getCurrentUserId()))
+            throw new ForbiddenException("Bạn không có quyền xóa đề tài này!");
         if (!isAdmin && topic.getApprovalStatus() == TopicApprovalStatus.APPROVED) {
             throw new BadRequestException("Đề tài đã được phê duyệt, giảng viên không thể tự ý xóa!");
         }
 
+        List<StudentGroup> registeredGroups = groupRepository.findByTopicIdIn(List.of(id));
+        if (!isAdmin && (Boolean.TRUE.equals(topic.getIsAssigned()) || !registeredGroups.isEmpty()))
+            throw new BadRequestException("Đề tài đã có nhóm sinh viên đăng ký, chỉ Admin/Trưởng khoa được xóa!");
+        if (isAdmin) {
+            finalResultRepository.deleteByTopicId(id);
+            gradeRepository.deleteByTopicId(id);
+            reviewerRepository.deleteByTopicId(id);
+            councilTopicRepository.deleteByTopicId(id);
+            for (StudentGroup group : registeredGroups) {
+                group.setTopic(null);
+                group.setStatus(GroupStatus.FORMING);
+                group.setReportUrl(null);
+                group.setReportNote(null);
+                group.setSubmittedAt(null);
+            }
+            groupRepository.saveAll(registeredGroups);
+            topicRepository.flush();
+        }
         topicRepository.delete(topic);
     }
 

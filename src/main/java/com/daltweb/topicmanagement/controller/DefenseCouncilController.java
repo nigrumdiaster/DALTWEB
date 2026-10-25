@@ -52,6 +52,23 @@ public class DefenseCouncilController {
                 .body(ApiResponse.success("Thành lập hội đồng thành công!", created));
     }
 
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEAN')")
+    @Operation(summary = "Chỉnh sửa thông tin và thành viên hội đồng")
+    public ResponseEntity<ApiResponse<DefenseCouncilDto>> updateCouncil(
+            @PathVariable Long id, @Valid @RequestBody CouncilCreateRequest request) {
+        DefenseCouncilDto updated = councilService.updateCouncil(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật hội đồng thành công!", updated));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEAN')")
+    @Operation(summary = "Xóa hội đồng chưa nhập điểm và gỡ các phân công liên quan")
+    public ResponseEntity<ApiResponse<Void>> deleteCouncil(@PathVariable Long id) {
+        councilService.deleteCouncil(id);
+        return ResponseEntity.ok(ApiResponse.success("Xóa hội đồng thành công!", null));
+    }
+
     @PostMapping("/{id}/assign-topics")
     @PreAuthorize("hasAnyRole('ADMIN', 'DEAN')")
     @Operation(summary = "Phân công danh sách đề tài cho hội đồng bảo vệ")

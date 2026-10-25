@@ -13,6 +13,7 @@ import java.util.Optional;
 
 @Repository
 public interface FinalResultRepository extends JpaRepository<FinalResult, Long> {
+    void deleteByTopicId(Long topicId);
     List<FinalResult> findByPeriodId(Long periodId);
 
     Optional<FinalResult> findByTopicId(Long topicId);

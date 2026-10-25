@@ -9,6 +9,7 @@ import java.util.Optional;
 
 @Repository
 public interface CouncilTopicAssignmentRepository extends JpaRepository<CouncilTopicAssignment, Long> {
+    void deleteByTopicId(Long topicId);
     List<CouncilTopicAssignment> findByCouncilId(Long councilId);
     Optional<CouncilTopicAssignment> findByTopicId(Long topicId);
     Boolean existsByCouncilIdAndTopicId(Long councilId, Long topicId);

@@ -74,7 +74,7 @@ public class TopicController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('LECTURER', 'DEPARTMENT_HEAD', 'ADMIN', 'DEAN')")
-    @Operation(summary = "Chỉnh sửa thông tin đề tài đã tạo (khi chưa có nhóm đăng ký)")
+    @Operation(summary = "Chỉnh sửa đề tài; Admin/Trưởng khoa được cập nhật cả đề tài đã có nhóm")
     public ResponseEntity<ApiResponse<TopicDto>> updateTopic(
             @PathVariable Long id,
             @Valid @RequestBody TopicUpdateRequest request) {
@@ -83,7 +83,7 @@ public class TopicController {
     }
 
     @PatchMapping("/{id}/approval")
-    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'ADMIN', 'DEAN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEAN')")
     @Operation(summary = "Trưởng bộ môn phê duyệt đề tài")
     public ResponseEntity<ApiResponse<TopicDto>> approveTopic(
             @PathVariable Long id,
@@ -94,7 +94,7 @@ public class TopicController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('LECTURER', 'DEPARTMENT_HEAD', 'ADMIN', 'DEAN')")
-    @Operation(summary = "Xóa đề tài (khi chưa có nhóm nhận)")
+    @Operation(summary = "Xóa đề tài; Admin/Trưởng khoa được xóa cả đề tài đã có nhóm, giữ nhóm và xóa dữ liệu phụ thuộc")
     public ResponseEntity<ApiResponse<Void>> deleteTopic(@PathVariable Long id) {
         topicService.deleteTopic(id);
         return ResponseEntity.ok(ApiResponse.success("Xóa đề tài thành công!", null));

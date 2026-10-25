@@ -61,26 +61,7 @@ public class DefenseCouncilService {
         RegistrationPeriod period = periodRepository.findById(request.getPeriodId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đợt đăng ký"));
 
-        if (request.getMembers() == null || request.getMembers().size() < 3 || request.getMembers().size() > 5) {
-            throw new BadRequestException("Hội đồng phản biện/bảo vệ phải có từ 3 đến 5 giảng viên!");
-        }
-
-        long chairmanCount = request.getMembers().stream().filter(m -> m.getCouncilRole() == CouncilRole.CHAIRMAN).count();
-        long secretaryCount = request.getMembers().stream().filter(m -> m.getCouncilRole() == CouncilRole.SECRETARY).count();
-
-        if (chairmanCount != 1) {
-            throw new BadRequestException("Hội đồng bắt buộc phải có đúng 01 Chủ tịch hội đồng!");
-        }
-        if (secretaryCount != 1) {
-            throw new BadRequestException("Hội đồng bắt buộc phải có đúng 01 Thư ký hội đồng!");
-        }
-
-        Set<Long> lecturerIds = new HashSet<>();
-        for (CouncilMemberInput memberInput : request.getMembers()) {
-            if (!lecturerIds.add(memberInput.getLecturerId())) {
-                throw new BadRequestException("Một giảng viên không thể xuất hiện 2 lần trong cùng một hội đồng!");
-            }
-        }
+        validateMembers(request);
 
         long count = councilRepository.count() + 1;
         String councilCode = String.format("HD-%d-%02d", period.getId(), count);
@@ -113,6 +94,88 @@ public class DefenseCouncilService {
         }
 
         return mapToDto(savedCouncil);
+    }
+
+    private void validateMembers(CouncilCreateRequest request) {
+
+        if (request.getMembers() == null || request.getMembers().size() < 3 || request.getMembers().size() > 5) {
+            throw new BadRequestException("Hội đồng phản biện/bảo vệ phải có từ 3 đến 5 giảng viên!");
+        }
+        if (request.getMembers().stream().anyMatch(m -> m == null || m.getLecturerId() == null || m.getCouncilRole() == null)) {
+            throw new BadRequestException("Thành viên hội đồng phải có giảng viên và vai trò!");
+        }
+
+        long chairmanCount = request.getMembers().stream().filter(m -> m.getCouncilRole() == CouncilRole.CHAIRMAN).count();
+        long secretaryCount = request.getMembers().stream().filter(m -> m.getCouncilRole() == CouncilRole.SECRETARY).count();
+
+        if (chairmanCount != 1) {
+            throw new BadRequestException("Hội đồng bắt buộc phải có đúng 01 Chủ tịch hội đồng!");
+        }
+        if (secretaryCount != 1) {
+            throw new BadRequestException("Hội đồng bắt buộc phải có đúng 01 Thư ký hội đồng!");
+        }
+
+        Set<Long> lecturerIds = new HashSet<>();
+        for (CouncilMemberInput memberInput : request.getMembers()) {
+            if (!lecturerIds.add(memberInput.getLecturerId())) {
+                throw new BadRequestException("Một giảng viên không thể xuất hiện 2 lần trong cùng một hội đồng!");
+            }
+        }
+
+    }
+
+    @Transactional
+    public DefenseCouncilDto updateCouncil(Long councilId, CouncilCreateRequest request) {
+        DefenseCouncil council = councilRepository.findById(councilId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hội đồng với ID: " + councilId));
+        if (!Objects.equals(council.getPeriod().getId(), request.getPeriodId()))
+            throw new BadRequestException("Không thể thay đổi đợt đăng ký của hội đồng đã thành lập!");
+        validateMembers(request);
+        Map<Long, CouncilRole> requested = request.getMembers().stream()
+                .collect(Collectors.toMap(CouncilMemberInput::getLecturerId, CouncilMemberInput::getCouncilRole));
+        Map<Long, CouncilRole> existing = council.getMembers().stream()
+                .collect(Collectors.toMap(m -> m.getLecturer().getId(), CouncilMember::getCouncilRole));
+        if (!requested.equals(existing) && council.getAssignedTopics().stream()
+                .anyMatch(a -> hasCouncilGrades(a.getTopic().getId())))
+            throw new BadRequestException("Hội đồng đã có điểm; không thể đổi thành viên hoặc vai trò!");
+        for (CouncilTopicAssignment assignment : council.getAssignedTopics()) {
+            Topic topic = assignment.getTopic();
+            if (requested.containsKey(topic.getPrimaryAdvisor().getId())
+                    || (topic.getCoAdvisor() != null && requested.containsKey(topic.getCoAdvisor().getId())))
+                throw new BadRequestException("GVHD không được tham gia hội đồng chấm đề tài mình hướng dẫn!");
+        }
+        Map<Long, User> lecturers = new HashMap<>();
+        for (Long lecturerId : requested.keySet())
+            lecturers.put(lecturerId, userRepository.findById(lecturerId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy giảng viên với ID: " + lecturerId)));
+        council.setName(request.getName());
+        council.setDefenseDate(request.getDefenseDate());
+        council.setLocation(request.getLocation());
+        council.setNotes(request.getNotes());
+        council.getMembers().removeIf(m -> !requested.containsKey(m.getLecturer().getId()));
+        for (CouncilMemberInput input : request.getMembers()) {
+            CouncilMember member = council.getMembers().stream()
+                    .filter(m -> Objects.equals(m.getLecturer().getId(), input.getLecturerId()))
+                    .findFirst().orElse(null);
+            if (member == null) council.getMembers().add(CouncilMember.builder().council(council)
+                    .lecturer(lecturers.get(input.getLecturerId())).councilRole(input.getCouncilRole()).build());
+            else member.setCouncilRole(input.getCouncilRole());
+        }
+        return mapToDto(councilRepository.save(council));
+    }
+
+    @Transactional
+    public void deleteCouncil(Long councilId) {
+        DefenseCouncil council = councilRepository.findById(councilId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hội đồng với ID: " + councilId));
+        if (council.getAssignedTopics().stream().anyMatch(a -> hasCouncilGrades(a.getTopic().getId())))
+            throw new BadRequestException("Hội đồng đã có điểm, không thể xóa!");
+        councilRepository.delete(council);
+    }
+
+    private boolean hasCouncilGrades(Long topicId) {
+        return gradeRepository.findByTopicId(topicId).stream().anyMatch(g -> Set.of(GraderRole.COUNCIL_CHAIRMAN,
+                GraderRole.COUNCIL_SECRETARY, GraderRole.COUNCIL_MEMBER).contains(g.getGraderRole()));
     }
 
     @Transactional

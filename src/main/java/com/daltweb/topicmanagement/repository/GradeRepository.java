@@ -12,6 +12,7 @@ import java.util.Optional;
 
 @Repository
 public interface GradeRepository extends JpaRepository<Grade, Long> {
+    void deleteByTopicId(Long topicId);
     List<Grade> findByTopicId(Long topicId);
 
     List<Grade> findByPeriodId(Long periodId);
