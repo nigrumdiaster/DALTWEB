@@ -1,5 +1,7 @@
 package com.daltweb.topicmanagement.service;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
 import com.daltweb.topicmanagement.constant.RoleType;
 import com.daltweb.topicmanagement.dto.announcement.AnnouncementDto;
 import com.daltweb.topicmanagement.dto.announcement.AnnouncementRequest;
@@ -33,18 +35,11 @@ public class AnnouncementService {
     }
 
     @Transactional(readOnly = true)
-    public List<AnnouncementDto> getAnnouncements() {
-        RoleType userRole = SecurityUtils.getCurrentUserRole();
-        List<Announcement> announcements;
-        if (userRole == null) {
-            announcements = announcementRepository.findAllByOrderByIsPinnedDescCreatedAtDesc();
-        } else {
-            announcements = announcementRepository.findAnnouncementsForRole(userRole);
-        }
-
-        return announcements.stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+    public Page<AnnouncementDto> getAnnouncements(String keyword, RoleType targetRole, Pageable pageable) {
+        RoleType role = SecurityUtils.getCurrentUserRole();
+        boolean canSeeAll = role == null || role == RoleType.ROLE_ADMIN || role == RoleType.ROLE_DEAN;
+        String pattern = "%" + (keyword == null ? "" : keyword.toLowerCase(java.util.Locale.ROOT)) + "%";
+        return announcementRepository.searchAnnouncements(role, canSeeAll, targetRole, pattern, pageable).map(this::mapToDto);
     }
 
     @Transactional(readOnly = true)

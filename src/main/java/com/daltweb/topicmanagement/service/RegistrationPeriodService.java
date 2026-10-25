@@ -1,5 +1,7 @@
 package com.daltweb.topicmanagement.service;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
 import com.daltweb.topicmanagement.constant.PeriodStatus;
 import com.daltweb.topicmanagement.constant.PeriodType;
 import com.daltweb.topicmanagement.constant.TopicApprovalStatus;
@@ -15,11 +17,13 @@ import com.daltweb.topicmanagement.repository.RegistrationPeriodRepository;
 import com.daltweb.topicmanagement.repository.StudentGroupRepository;
 import com.daltweb.topicmanagement.repository.TopicRepository;
 import com.daltweb.topicmanagement.repository.UserRepository;
+import com.daltweb.topicmanagement.repository.PeriodCount;
 import com.daltweb.topicmanagement.security.SecurityUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,10 +45,8 @@ public class RegistrationPeriodService {
     }
 
     @Transactional(readOnly = true)
-    public List<RegistrationPeriodDto> getAllPeriods(PeriodType type, PeriodStatus status) {
-        return periodRepository.filterPeriods(type, status).stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+    public Page<RegistrationPeriodDto> getAllPeriods(PeriodType type, PeriodStatus status, String keyword, boolean excludeDraft, Pageable pageable) {
+        return mapPage(periodRepository.filterPeriods(type, status, "%" + (keyword == null ? "" : keyword.toLowerCase(java.util.Locale.ROOT)) + "%", excludeDraft, pageable));
     }
 
     @Transactional(readOnly = true)
@@ -155,7 +157,7 @@ public class RegistrationPeriodService {
         if (!periodRepository.existsById(id)) {
             throw new ResourceNotFoundException("Không tìm thấy đợt đăng ký với ID: " + id);
         }
-        if (!topicRepository.findByPeriodId(id).isEmpty() || !groupRepository.findByPeriodId(id).isEmpty()) {
+        if (topicRepository.existsByPeriodId(id) || groupRepository.existsByPeriodId(id)) {
             throw new BadRequestException("Đợt đăng ký này đã phát sinh đề tài hoặc nhóm sinh viên, không thể xóa!");
         }
         periodRepository.deleteById(id);
@@ -192,8 +194,22 @@ public class RegistrationPeriodService {
     }
 
     public RegistrationPeriodDto mapToDto(RegistrationPeriod period) {
-        long topicCount = topicRepository.findByPeriodId(period.getId()).size();
-        long groupCount = groupRepository.findByPeriodId(period.getId()).size();
+        long topicCount = topicRepository.countByPeriodId(period.getId());
+        long groupCount = groupRepository.countByPeriodId(period.getId());
+        return mapToDto(period, topicCount, groupCount);
+    }
+
+    public Page<RegistrationPeriodDto> mapPage(Page<RegistrationPeriod> periods) {
+        if (periods.isEmpty()) return periods.map(p -> mapToDto(p, 0, 0));
+        List<Long> ids = periods.map(RegistrationPeriod::getId).getContent();
+        Map<Long, Long> topics = topicRepository.countForPeriods(ids).stream()
+                .collect(Collectors.toMap(PeriodCount::getPeriodId, PeriodCount::getTotal));
+        Map<Long, Long> groups = groupRepository.countForPeriods(ids).stream()
+                .collect(Collectors.toMap(PeriodCount::getPeriodId, PeriodCount::getTotal));
+        return periods.map(p -> mapToDto(p, topics.getOrDefault(p.getId(), 0L), groups.getOrDefault(p.getId(), 0L)));
+    }
+
+    private RegistrationPeriodDto mapToDto(RegistrationPeriod period, long topicCount, long groupCount) {
 
         return RegistrationPeriodDto.builder()
                 .id(period.getId())

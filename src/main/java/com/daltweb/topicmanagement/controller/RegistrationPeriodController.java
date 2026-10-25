@@ -1,5 +1,7 @@
 package com.daltweb.topicmanagement.controller;
 
+import com.daltweb.topicmanagement.dto.common.Pagination;
+import org.springframework.data.domain.Page;
 import com.daltweb.topicmanagement.constant.PeriodStatus;
 import com.daltweb.topicmanagement.constant.PeriodType;
 import com.daltweb.topicmanagement.dto.common.ApiResponse;
@@ -33,9 +35,13 @@ public class RegistrationPeriodController {
     @Operation(summary = "Danh sách các đợt đăng ký", description = "Lọc theo loại (Môn học/NCKH/TLCN/KLTN) và trạng thái")
     public ResponseEntity<ApiResponse<List<RegistrationPeriodDto>>> getPeriods(
             @RequestParam(required = false) PeriodType type,
-            @RequestParam(required = false) PeriodStatus status) {
-        List<RegistrationPeriodDto> list = periodService.getAllPeriods(type, status);
-        return ResponseEntity.ok(ApiResponse.success(list));
+            @RequestParam(required = false) PeriodStatus status,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "false") boolean excludeDraft,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int limit) {
+        Page<RegistrationPeriodDto> list = periodService.getAllPeriods(type, status, keyword, excludeDraft, Pagination.request(page, limit));
+        return ResponseEntity.ok(ApiResponse.paged(list));
     }
 
     @GetMapping("/{id}")

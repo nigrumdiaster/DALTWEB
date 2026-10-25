@@ -1,5 +1,7 @@
 package com.daltweb.topicmanagement.controller;
 
+import com.daltweb.topicmanagement.dto.common.Pagination;
+import org.springframework.data.domain.Page;
 import com.daltweb.topicmanagement.constant.TopicApprovalStatus;
 import com.daltweb.topicmanagement.dto.common.ApiResponse;
 import com.daltweb.topicmanagement.dto.topic.TopicApprovalRequest;
@@ -35,18 +37,23 @@ public class TopicController {
             @RequestParam(required = false) Long departmentId,
             @RequestParam(required = false) TopicApprovalStatus status,
             @RequestParam(required = false) Boolean isAssigned,
-            @RequestParam(required = false) String keyword) {
-        List<TopicDto> list = topicService.getTopics(periodId, departmentId, status, isAssigned, keyword);
-        return ResponseEntity.ok(ApiResponse.success(list));
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long advisorId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int limit) {
+        Page<TopicDto> list = topicService.getTopics(periodId, departmentId, status, isAssigned, keyword, advisorId, Pagination.request(page, limit));
+        return ResponseEntity.ok(ApiResponse.paged(list));
     }
 
     @GetMapping("/published")
     @Operation(summary = "Danh sách đề tài đã được phê duyệt & công bố")
     public ResponseEntity<ApiResponse<List<TopicDto>>> getPublishedTopics(
             @RequestParam(required = false) Long periodId,
-            @RequestParam(required = false) Long departmentId) {
-        List<TopicDto> list = topicService.getApprovedPublishedTopics(periodId, departmentId);
-        return ResponseEntity.ok(ApiResponse.success(list));
+            @RequestParam(required = false) Long departmentId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int limit) {
+        Page<TopicDto> list = topicService.getApprovedPublishedTopics(periodId, departmentId, Pagination.request(page, limit));
+        return ResponseEntity.ok(ApiResponse.paged(list));
     }
 
     @GetMapping("/{id}")

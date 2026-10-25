@@ -11,8 +11,7 @@ import java.util.Optional;
 
 @Repository
 public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> {
-    List<GroupMember> findByGroupId(Long groupId);
-    List<GroupMember> findByStudentId(Long studentId);
+
     Optional<GroupMember> findByGroupIdAndStudentId(Long groupId, Long studentId);
 
     @Query("SELECT gm FROM GroupMember gm WHERE gm.student.id = :studentId AND gm.group.period.id = :periodId")

@@ -1,5 +1,7 @@
 package com.daltweb.topicmanagement.service;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
 import com.daltweb.topicmanagement.dto.department.DepartmentDto;
 import com.daltweb.topicmanagement.dto.department.DepartmentRequest;
 import com.daltweb.topicmanagement.entity.Department;
@@ -26,10 +28,9 @@ public class DepartmentService {
     }
 
     @Transactional(readOnly = true)
-    public List<DepartmentDto> getAllDepartments() {
-        return departmentRepository.findAll().stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+    public Page<DepartmentDto> getAllDepartments(Pageable pageable) {
+        return departmentRepository.findAll(pageable)
+                .map(this::mapToDto);
     }
 
     @Transactional(readOnly = true)

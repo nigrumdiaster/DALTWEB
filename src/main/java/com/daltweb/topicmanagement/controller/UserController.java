@@ -1,5 +1,7 @@
 package com.daltweb.topicmanagement.controller;
 
+import com.daltweb.topicmanagement.dto.common.Pagination;
+import org.springframework.data.domain.Page;
 import com.daltweb.topicmanagement.constant.RoleType;
 import com.daltweb.topicmanagement.dto.auth.RegisterRequest;
 import com.daltweb.topicmanagement.dto.auth.UpdateUserRequest;
@@ -36,9 +38,11 @@ public class UserController {
     public ResponseEntity<ApiResponse<List<UserDto>>> getUsers(
             @RequestParam(required = false) RoleType role,
             @RequestParam(required = false) Long departmentId,
-            @RequestParam(required = false) String keyword) {
-        List<UserDto> users = userService.getUsers(role, departmentId, keyword);
-        return ResponseEntity.ok(ApiResponse.success(users));
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int limit) {
+        Page<UserDto> users = userService.getUsers(role, departmentId, keyword, Pagination.request(page, limit));
+        return ResponseEntity.ok(ApiResponse.paged(users));
     }
 
     @GetMapping("/{id}")
@@ -50,9 +54,12 @@ public class UserController {
 
     @GetMapping("/lecturers/department/{departmentId}")
     @Operation(summary = "Danh sách giảng viên theo bộ môn")
-    public ResponseEntity<ApiResponse<List<UserDto>>> getLecturersByDepartment(@PathVariable Long departmentId) {
-        List<UserDto> lecturers = userService.getLecturersByDepartment(departmentId);
-        return ResponseEntity.ok(ApiResponse.success(lecturers));
+    public ResponseEntity<ApiResponse<List<UserDto>>> getLecturersByDepartment(@PathVariable Long departmentId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int limit) {
+        Page<UserDto> lecturers = userService.getLecturersByDepartment(departmentId, keyword, Pagination.request(page, limit));
+        return ResponseEntity.ok(ApiResponse.paged(lecturers));
     }
 
     @PostMapping

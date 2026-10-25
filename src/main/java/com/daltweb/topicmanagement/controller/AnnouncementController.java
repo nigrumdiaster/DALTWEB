@@ -1,5 +1,7 @@
 package com.daltweb.topicmanagement.controller;
 
+import com.daltweb.topicmanagement.dto.common.Pagination;
+import org.springframework.data.domain.Page;
 import com.daltweb.topicmanagement.dto.announcement.AnnouncementDto;
 import com.daltweb.topicmanagement.dto.announcement.AnnouncementRequest;
 import com.daltweb.topicmanagement.dto.common.ApiResponse;
@@ -27,9 +29,13 @@ public class AnnouncementController {
 
     @GetMapping
     @Operation(summary = "Lấy danh sách thông báo chính thức")
-    public ResponseEntity<ApiResponse<List<AnnouncementDto>>> getAnnouncements() {
-        List<AnnouncementDto> list = announcementService.getAnnouncements();
-        return ResponseEntity.ok(ApiResponse.success(list));
+    public ResponseEntity<ApiResponse<List<AnnouncementDto>>> getAnnouncements(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) com.daltweb.topicmanagement.constant.RoleType targetRole,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int limit) {
+        Page<AnnouncementDto> list = announcementService.getAnnouncements(keyword, targetRole, Pagination.request(page, limit));
+        return ResponseEntity.ok(ApiResponse.paged(list));
     }
 
     @GetMapping("/{id}")

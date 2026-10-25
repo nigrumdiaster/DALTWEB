@@ -106,6 +106,28 @@ Hệ thống được thiết kế theo chuẩn RESTful API với quy trình ngh
 
 ## 🌐 TÀI LIỆU API SWAGGER UI & CSDL
 
+### Phân trang danh sách tại database
+
+Các API danh sách người dùng, giảng viên theo bộ môn, bộ môn, đợt đăng ký, đề tài (gồm `/topics/published`), nhóm, hội đồng theo đợt, phân công phản biện và kết quả hỗ trợ:
+
+* `page`: chỉ số trang bắt đầu từ **0**, mặc định `0`.
+* `limit`: số bản ghi mỗi trang, mặc định **10**, từ **1–200**. Dùng **`limit=-1`** để yêu cầu toàn bộ kết quả khớp bộ lọc; khi đó bỏ `page` hoặc đặt `page=0`.
+* Điều kiện lọc và phân trang được thực hiện tại repository bằng `Pageable`. Thứ tự có thêm `id` để duyệt trang ổn định; các API có thứ tự nghiệp vụ (ghim thông báo, ngày tạo đợt) vẫn giữ thứ tự đó.
+* Response giữ `data` là mảng và thêm `pagination`: `page`, `size`, `totalElements`, `totalPages`, `hasNext`. Các quyền xem dữ liệu vẫn áp dụng cả khi `limit=-1`.
+
+Ví dụ:
+
+```text
+GET /api/topics?periodId=1&page=0&limit=20
+GET /api/topics?periodId=1&page=1&limit=20
+GET /api/departments?limit=-1
+GET /api/results/student/my-results?periodId=1&page=0&limit=20
+```
+
+Frontend dùng `apiFetchTable()` trong `js/config.js` cho bảng và danh sách chính: mỗi lần tải hoặc bấm chuyển trang chỉ gọi trang đang xem với **`page=...&limit=10`**. Đổi bộ lọc/từ khóa sẽ trở về trang đầu; bộ lọc được áp dụng tại database trước phân trang. Không tự tải hết các trang cho bảng. Các nút phân trang dựa vào `totalElements`/`totalPages` do backend trả về.
+
+`apiFetch()` thực hiện một HTTP request. Các ô chọn và dữ liệu tra cứu phụ cần đầy đủ dùng **`apiFetchAll()`** một cách tường minh; hàm tải nối tiếp các trang, giữ bộ lọc/token/`AbortSignal` và báo lỗi nếu có trang tải thất bại. Nếu cần lấy tất cả trong một request, truyền rõ `limit=-1`. Dữ liệu có thể thay đổi giữa các request; tải lại khi có cập nhật đồng thời. Tải tất cả vẫn dùng RAM cho toàn bộ kết quả, nên chỉ dùng khi cần.
+
 Sau khi khởi động thành công trên cổng `8080`, truy cập:
 
 | Trang quản lý | Địa chỉ URL | Mô tả |

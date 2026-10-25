@@ -1,5 +1,7 @@
 package com.daltweb.topicmanagement.service;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
 import com.daltweb.topicmanagement.constant.CouncilRole;
 import com.daltweb.topicmanagement.constant.GraderRole;
 import com.daltweb.topicmanagement.constant.PeriodStatus;
@@ -42,10 +44,9 @@ public class DefenseCouncilService {
     }
 
     @Transactional(readOnly = true)
-    public List<DefenseCouncilDto> getCouncilsByPeriod(Long periodId) {
-        return councilRepository.findByPeriodId(periodId).stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+    public Page<DefenseCouncilDto> getCouncilsByPeriod(Long periodId, Long lecturerId, Pageable pageable) {
+        return councilRepository.findByPeriodId(periodId, lecturerId, pageable)
+                .map(this::mapToDto);
     }
 
     @Transactional(readOnly = true)

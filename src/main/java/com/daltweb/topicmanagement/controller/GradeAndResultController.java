@@ -1,5 +1,7 @@
 package com.daltweb.topicmanagement.controller;
 
+import com.daltweb.topicmanagement.dto.common.Pagination;
+import org.springframework.data.domain.Page;
 import com.daltweb.topicmanagement.dto.common.ApiResponse;
 import com.daltweb.topicmanagement.dto.council.FinalizeCouncilResultRequest;
 import com.daltweb.topicmanagement.dto.grade.*;
@@ -58,9 +60,11 @@ public class GradeAndResultController {
 
     @GetMapping("/results/period/{periodId}")
     @Operation(summary = "Xem bảng kết quả tổng hợp của đợt đăng ký")
-    public ResponseEntity<ApiResponse<List<FinalResultDto>>> getResultsByPeriod(@PathVariable Long periodId) {
-        List<FinalResultDto> list = gradeAndResultService.getResultsByPeriod(periodId);
-        return ResponseEntity.ok(ApiResponse.success(list));
+    public ResponseEntity<ApiResponse<List<FinalResultDto>>> getResultsByPeriod(@PathVariable Long periodId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int limit) {
+        Page<FinalResultDto> list = gradeAndResultService.getResultsByPeriod(periodId, Pagination.request(page, limit));
+        return ResponseEntity.ok(ApiResponse.paged(list));
     }
 
     @GetMapping("/results/topic/{topicId}")
@@ -73,15 +77,19 @@ public class GradeAndResultController {
     @GetMapping("/results/student/my-results")
     @PreAuthorize("hasRole('STUDENT')")
     @Operation(summary = "Sinh viên tra cứu điểm và kết quả đánh giá của đề tài mình tham gia")
-    public ResponseEntity<ApiResponse<List<FinalResultDto>>> getMyStudentResults(@RequestParam(required = false) Long periodId) {
-        List<FinalResultDto> list = gradeAndResultService.getMyStudentResults(periodId);
-        return ResponseEntity.ok(ApiResponse.success(list));
+    public ResponseEntity<ApiResponse<List<FinalResultDto>>> getMyStudentResults(@RequestParam(required = false) Long periodId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int limit) {
+        Page<FinalResultDto> list = gradeAndResultService.getMyStudentResults(periodId, Pagination.request(page, limit));
+        return ResponseEntity.ok(ApiResponse.paged(list));
     }
 
     @GetMapping("/results/student/periods")
     @PreAuthorize("hasRole('STUDENT')")
     @Operation(summary = "Các đợt sinh viên đã đăng ký đề tài để tra cứu điểm")
-    public ResponseEntity<ApiResponse<List<RegistrationPeriodDto>>> getMyResultPeriods() {
-        return ResponseEntity.ok(ApiResponse.success(gradeAndResultService.getMyResultPeriods()));
+    public ResponseEntity<ApiResponse<List<RegistrationPeriodDto>>> getMyResultPeriods(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int limit) {
+        return ResponseEntity.ok(ApiResponse.paged(gradeAndResultService.getMyResultPeriods(Pagination.request(page, limit))));
     }
 }

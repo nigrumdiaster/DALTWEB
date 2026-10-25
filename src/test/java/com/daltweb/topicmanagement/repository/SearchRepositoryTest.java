@@ -22,18 +22,18 @@ class SearchRepositoryTest {
                 .fullName("Demo User").email("demo@example.com")
                 .code("GV001").role(RoleType.ROLE_ADMIN).build());
 
-        assertThat(users.searchUsers(null, null, null)).hasSize(1);
-        assertThat(users.searchUsers(null, null, "")).hasSize(1);
+        assertThat(users.searchUsers(null, null, null, org.springframework.data.domain.Pageable.unpaged())).hasSize(1);
+        assertThat(users.searchUsers(null, null, "", org.springframework.data.domain.Pageable.unpaged())).hasSize(1);
         for (String keyword : new String[]{"DEMO USER", "DEMO_ADMIN", "gv001"}) {
-            assertThat(users.searchUsers(null, null, keyword)).hasSize(1);
+            assertThat(users.searchUsers(null, null, keyword, org.springframework.data.domain.Pageable.unpaged())).hasSize(1);
         }
-        assertThat(users.searchUsers(null, null, "missing")).isEmpty();
-        assertThat(users.searchUsers(RoleType.ROLE_STUDENT, null, null)).isEmpty();
+        assertThat(users.searchUsers(null, null, "missing", org.springframework.data.domain.Pageable.unpaged())).isEmpty();
+        assertThat(users.searchUsers(RoleType.ROLE_STUDENT, null, null, org.springframework.data.domain.Pageable.unpaged())).isEmpty();
     }
 
     @Test
     void topicQueryAcceptsAbsentAndPresentKeyword() {
-        assertThat(topics.filterTopics(null, null, null, null, null)).isEmpty();
-        assertThat(topics.filterTopics(null, null, null, null, "Demo")).isEmpty();
+        assertThat(topics.filterTopics(null, null, null, null, null, null, org.springframework.data.domain.Pageable.unpaged())).isEmpty();
+        assertThat(topics.filterTopics(null, null, null, null, "Demo", null, org.springframework.data.domain.Pageable.unpaged())).isEmpty();
     }
 }

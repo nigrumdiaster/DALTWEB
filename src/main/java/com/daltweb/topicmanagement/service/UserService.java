@@ -1,5 +1,7 @@
 package com.daltweb.topicmanagement.service;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
 import com.daltweb.topicmanagement.constant.RoleType;
 import com.daltweb.topicmanagement.dto.auth.UpdateUserRequest;
 import com.daltweb.topicmanagement.dto.auth.UserDto;
@@ -29,11 +31,9 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public List<UserDto> getUsers(RoleType role, Long departmentId, String keyword) {
-        return userRepository.searchUsers(role, departmentId, keyword)
-                .stream()
-                .map(authService::mapToUserDto)
-                .collect(Collectors.toList());
+    public Page<UserDto> getUsers(RoleType role, Long departmentId, String keyword, Pageable pageable) {
+        return userRepository.searchUsers(role, departmentId, keyword, pageable)
+                .map(authService::mapToUserDto);
     }
 
     @Transactional(readOnly = true)
@@ -44,11 +44,9 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public List<UserDto> getLecturersByDepartment(Long departmentId) {
-        return userRepository.findByRoleAndDepartmentId(RoleType.ROLE_LECTURER, departmentId)
-                .stream()
-                .map(authService::mapToUserDto)
-                .collect(Collectors.toList());
+    public Page<UserDto> getLecturersByDepartment(Long departmentId, String keyword, Pageable pageable) {
+        return userRepository.searchUsers(RoleType.ROLE_LECTURER, departmentId, keyword, pageable)
+                .map(authService::mapToUserDto);
     }
 
     @Transactional

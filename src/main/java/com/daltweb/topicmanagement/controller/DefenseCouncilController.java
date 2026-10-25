@@ -1,5 +1,7 @@
 package com.daltweb.topicmanagement.controller;
 
+import com.daltweb.topicmanagement.dto.common.Pagination;
+import org.springframework.data.domain.Page;
 import com.daltweb.topicmanagement.dto.common.ApiResponse;
 import com.daltweb.topicmanagement.dto.council.*;
 import com.daltweb.topicmanagement.service.DefenseCouncilService;
@@ -26,9 +28,12 @@ public class DefenseCouncilController {
 
     @GetMapping("/period/{periodId}")
     @Operation(summary = "Danh sách các hội đồng bảo vệ trong đợt")
-    public ResponseEntity<ApiResponse<List<DefenseCouncilDto>>> getCouncilsByPeriod(@PathVariable Long periodId) {
-        List<DefenseCouncilDto> list = councilService.getCouncilsByPeriod(periodId);
-        return ResponseEntity.ok(ApiResponse.success(list));
+    public ResponseEntity<ApiResponse<List<DefenseCouncilDto>>> getCouncilsByPeriod(@PathVariable Long periodId,
+            @RequestParam(required = false) Long lecturerId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int limit) {
+        Page<DefenseCouncilDto> list = councilService.getCouncilsByPeriod(periodId, lecturerId, Pagination.request(page, limit));
+        return ResponseEntity.ok(ApiResponse.paged(list));
     }
 
     @GetMapping("/{id}")

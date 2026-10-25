@@ -1,6 +1,7 @@
 package com.daltweb.topicmanagement.service;
 
 import com.daltweb.topicmanagement.constant.*;
+import com.daltweb.topicmanagement.dto.common.Pagination;
 import com.daltweb.topicmanagement.entity.*;
 import com.daltweb.topicmanagement.dto.council.FinalizeCouncilResultRequest;
 import com.daltweb.topicmanagement.dto.grade.PublishResultRequest;
@@ -28,6 +29,7 @@ import static org.assertj.core.api.Assertions.*;
         RegistrationPeriodService.class, ResultValidationService.class, ReviewerService.class})
 @RecordApplicationEvents
 class ResultAccessIntegrationTest {
+    private static final org.springframework.data.domain.Pageable PAGE = Pagination.request(0, 50);
     @Autowired GradeAndResultService service;
     @Autowired ReviewerService reviewerService;
     @Autowired UserRepository users;
@@ -103,23 +105,33 @@ class ResultAccessIntegrationTest {
     }
 
     @Test void realQueriesOnlyReturnOwnPublishedResults() {
-        assertThat(service.getMyStudentResults(null)).extracting(r -> r.getTopicId()).containsExactly(ownTopic.getId());
-        assertThat(service.getResultsByPeriod(ownPeriod.getId())).extracting(r -> r.getTopicId()).containsExactly(ownTopic.getId());
-        assertThat(service.getMyStudentResults(unpublishedPeriod.getId())).isEmpty();
-        assertThat(service.getMyStudentResults(pendingPeriod.getId())).isEmpty();
+        assertThat(service.getMyStudentResults(null, PAGE)).extracting(r -> r.getTopicId()).containsExactly(ownTopic.getId());
+        assertThat(service.getResultsByPeriod(ownPeriod.getId(), PAGE)).extracting(r -> r.getTopicId()).containsExactly(ownTopic.getId());
+        assertThat(service.getMyStudentResults(unpublishedPeriod.getId(), PAGE)).isEmpty();
+        assertThat(service.getMyStudentResults(pendingPeriod.getId(), PAGE)).isEmpty();
     }
 
     @Test void selectorIncludesRegisteredPeriodsEvenBeforeResultsExist() {
-        assertThat(service.getMyResultPeriods()).extracting(p -> p.getId())
+        assertThat(service.getMyResultPeriods(PAGE)).extracting(p -> p.getId())
                 .containsExactlyInAnyOrder(ownPeriod.getId(), unpublishedPeriod.getId(), pendingPeriod.getId());
     }
 
+    @Test void unpagedRequestsStillEnforceStudentScope() {
+        var all = Pagination.request(0, -1);
+        assertThat(service.getResultsByPeriod(ownPeriod.getId(), all)).extracting(r -> r.getTopicId())
+                .containsExactly(ownTopic.getId());
+        assertThat(service.getMyStudentResults(null, all)).extracting(r -> r.getTopicId())
+                .containsExactly(ownTopic.getId());
+        assertThatThrownBy(() -> service.getResultsByPeriod(otherPeriod.getId(), all))
+                .isInstanceOf(ForbiddenException.class);
+    }
+
     @Test void directCallsCannotRevealForeignOrUnpublishedGrades() {
-        assertThatThrownBy(() -> service.getResultsByPeriod(otherPeriod.getId())).isInstanceOf(ForbiddenException.class);
+        assertThatThrownBy(() -> service.getResultsByPeriod(otherPeriod.getId(), PAGE)).isInstanceOf(ForbiddenException.class);
         assertThatThrownBy(() -> service.getTopicResult(otherTopic.getId())).isInstanceOf(ForbiddenException.class);
         assertThatThrownBy(() -> service.getTopicGrades(otherTopic.getId())).isInstanceOf(ForbiddenException.class);
         assertThatThrownBy(() -> service.getTopicResult(unpublishedTopic.getId())).isInstanceOf(ForbiddenException.class);
-        assertThatThrownBy(() -> reviewerService.getAssignmentsByPeriod(otherPeriod.getId())).isInstanceOf(ForbiddenException.class);
+        assertThatThrownBy(() -> reviewerService.getAssignmentsByPeriod(otherPeriod.getId(), null, PAGE)).isInstanceOf(ForbiddenException.class);
     }
 
     @Test void completeWorkflowFinalizesEveryGroupAndPublishesEachResultOnce() {

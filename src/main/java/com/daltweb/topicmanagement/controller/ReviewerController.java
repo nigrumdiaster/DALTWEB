@@ -1,5 +1,7 @@
 package com.daltweb.topicmanagement.controller;
 
+import com.daltweb.topicmanagement.dto.common.Pagination;
+import org.springframework.data.domain.Page;
 import com.daltweb.topicmanagement.dto.common.ApiResponse;
 import com.daltweb.topicmanagement.dto.reviewer.AssignReviewerRequest;
 import com.daltweb.topicmanagement.dto.reviewer.ReviewerAssignmentDto;
@@ -28,17 +30,22 @@ public class ReviewerController {
     @GetMapping("/period/{periodId}")
     @PreAuthorize("hasAnyRole('LECTURER', 'DEPARTMENT_HEAD', 'ADMIN', 'DEAN')")
     @Operation(summary = "Danh sách phân công GVPB theo đợt")
-    public ResponseEntity<ApiResponse<List<ReviewerAssignmentDto>>> getAssignmentsByPeriod(@PathVariable Long periodId) {
-        List<ReviewerAssignmentDto> list = reviewerService.getAssignmentsByPeriod(periodId);
-        return ResponseEntity.ok(ApiResponse.success(list));
+    public ResponseEntity<ApiResponse<List<ReviewerAssignmentDto>>> getAssignmentsByPeriod(@PathVariable Long periodId,
+            @RequestParam(required = false) List<Long> topicIds,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int limit) {
+        Page<ReviewerAssignmentDto> list = reviewerService.getAssignmentsByPeriod(periodId, topicIds, Pagination.request(page, limit));
+        return ResponseEntity.ok(ApiResponse.paged(list));
     }
 
     @GetMapping("/my-tasks")
     @PreAuthorize("hasAnyRole('LECTURER', 'DEPARTMENT_HEAD', 'ADMIN', 'DEAN')")
     @Operation(summary = "Xem danh sách các đề tài mình được phân công phản biện")
-    public ResponseEntity<ApiResponse<List<ReviewerAssignmentDto>>> getMyReviewTasks() {
-        List<ReviewerAssignmentDto> list = reviewerService.getMyReviewTasks();
-        return ResponseEntity.ok(ApiResponse.success(list));
+    public ResponseEntity<ApiResponse<List<ReviewerAssignmentDto>>> getMyReviewTasks(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int limit) {
+        Page<ReviewerAssignmentDto> list = reviewerService.getMyReviewTasks(Pagination.request(page, limit));
+        return ResponseEntity.ok(ApiResponse.paged(list));
     }
 
     @PostMapping("/assign")

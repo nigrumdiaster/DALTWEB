@@ -1,5 +1,7 @@
 package com.daltweb.topicmanagement.service;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
 import com.daltweb.topicmanagement.constant.GroupRole;
 import com.daltweb.topicmanagement.constant.GroupStatus;
 import com.daltweb.topicmanagement.constant.PeriodStatus;
@@ -44,10 +46,9 @@ public class StudentGroupService {
     }
 
     @Transactional(readOnly = true)
-    public List<StudentGroupDto> getGroups(Long periodId, GroupStatus status) {
-        return groupRepository.filterGroups(periodId, status).stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+    public Page<StudentGroupDto> getGroups(Long periodId, GroupStatus status, String keyword, Long advisorId, Pageable pageable) {
+        return groupRepository.filterGroups(periodId, status, "%" + (keyword == null ? "" : keyword.toLowerCase(java.util.Locale.ROOT)) + "%", advisorId, pageable)
+                .map(this::mapToDto);
     }
 
     @Transactional(readOnly = true)
@@ -339,7 +340,7 @@ public class StudentGroupService {
                 .periodName(group.getPeriod() != null ? group.getPeriod().getName() : null)
                 .topicId(group.getTopic() != null ? group.getTopic().getId() : null)
                 .topicTitleVi(group.getTopic() != null ? group.getTopic().getTitleVi() : null)
-                .topic(group.getTopic() != null ? topicService.mapToDto(group.getTopic()) : null)
+                .topic(group.getTopic() != null ? topicService.mapToDto(group.getTopic(), group) : null)
                 .status(group.getStatus())
                 .reportUrl(group.getReportUrl())
                 .reportNote(group.getReportNote())

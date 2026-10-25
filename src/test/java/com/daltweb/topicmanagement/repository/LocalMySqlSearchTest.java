@@ -43,29 +43,29 @@ class LocalMySqlSearchTest {
         var baseline = users.findAll();
         assertThat(baseline).as("Local database must contain users to verify matching").isNotEmpty();
         var ids = baseline.stream().map(User::getId).toList();
-        assertThat(users.searchUsers(null, null, null)).extracting(User::getId)
+        assertThat(users.searchUsers(null, null, null, org.springframework.data.domain.Pageable.unpaged())).extracting(User::getId)
                 .containsExactlyInAnyOrderElementsOf(ids);
-        assertThat(users.searchUsers(null, null, "")).extracting(User::getId)
+        assertThat(users.searchUsers(null, null, "", org.springframework.data.domain.Pageable.unpaged())).extracting(User::getId)
                 .containsExactlyInAnyOrderElementsOf(ids);
         var sample = baseline.get(0);
-        assertThat(users.searchUsers(null, null, sample.getUsername().toUpperCase(Locale.ROOT)))
+        assertThat(users.searchUsers(null, null, sample.getUsername().toUpperCase(Locale.ROOT), org.springframework.data.domain.Pageable.unpaged()))
                 .extracting(User::getId).contains(sample.getId());
-        assertThat(users.searchUsers(sample.getRole(), null, null))
+        assertThat(users.searchUsers(sample.getRole(), null, null, org.springframework.data.domain.Pageable.unpaged()))
                 .allMatch(user -> user.getRole() == sample.getRole());
-        assertThat(users.searchUsers(null, null, "__no_match_785cf791__")).isEmpty();
+        assertThat(users.searchUsers(null, null, "__no_match_785cf791__", org.springframework.data.domain.Pageable.unpaged())).isEmpty();
     }
 
     @Test
     void topicSearchHandlesNullEmptyAndPresentKeyword() {
         var baseline = topics.findAll();
-        var all = topics.filterTopics(null, null, null, null, null);
+        var all = topics.filterTopics(null, null, null, null, null, null, org.springframework.data.domain.Pageable.unpaged());
         assertThat(all).hasSize(baseline.size());
-        assertThat(topics.filterTopics(null, null, null, null, "")).hasSize(baseline.size());
+        assertThat(topics.filterTopics(null, null, null, null, "", null, org.springframework.data.domain.Pageable.unpaged())).hasSize(baseline.size());
         if (!baseline.isEmpty()) {
             var sample = baseline.get(0);
-            assertThat(topics.filterTopics(null, null, null, null, sample.getTitleVi()))
+            assertThat(topics.filterTopics(null, null, null, null, sample.getTitleVi(), null, org.springframework.data.domain.Pageable.unpaged()))
                     .anyMatch(topic -> topic.getId().equals(sample.getId()));
         }
-        assertThat(topics.filterTopics(null, null, null, null, "__no_match_785cf791__")).isEmpty();
+        assertThat(topics.filterTopics(null, null, null, null, "__no_match_785cf791__", null, org.springframework.data.domain.Pageable.unpaged())).isEmpty();
     }
 }

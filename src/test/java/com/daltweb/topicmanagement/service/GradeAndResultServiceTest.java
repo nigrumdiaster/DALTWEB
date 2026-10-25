@@ -1,6 +1,7 @@
 package com.daltweb.topicmanagement.service;
 
 import com.daltweb.topicmanagement.constant.*;
+import com.daltweb.topicmanagement.dto.common.Pagination;
 import com.daltweb.topicmanagement.dto.council.FinalizeCouncilResultRequest;
 import com.daltweb.topicmanagement.dto.grade.PublishResultRequest;
 import com.daltweb.topicmanagement.entity.*;
@@ -23,6 +24,7 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class GradeAndResultServiceTest {
+    private static final org.springframework.data.domain.Pageable PAGE = Pagination.request(0, 50);
     @Mock GradeRepository grades;
     @Mock FinalResultRepository results;
     @Mock TopicRepository topics;
@@ -70,22 +72,22 @@ class GradeAndResultServiceTest {
     @AfterEach void clear() { SecurityContextHolder.clearContext(); }
 
     @Test void studentCannotQueryUnregisteredPeriodThroughEitherRoute() {
-        assertThatThrownBy(() -> service.getResultsByPeriod(99L)).isInstanceOf(ForbiddenException.class);
-        assertThatThrownBy(() -> service.getMyStudentResults(99L)).isInstanceOf(ForbiddenException.class);
+        assertThatThrownBy(() -> service.getResultsByPeriod(99L, PAGE)).isInstanceOf(ForbiddenException.class);
+        assertThatThrownBy(() -> service.getMyStudentResults(99L, PAGE)).isInstanceOf(ForbiddenException.class);
         verifyNoInteractions(results);
     }
 
     @Test void studentCannotQueryPeriodWithOnlyAnUnregisteredGroup() {
         group.setTopic(null);
         when(members.findByStudentIdAndPeriodId(1L, 10L)).thenReturn(Optional.of(group.getMembers().get(0)));
-        assertThatThrownBy(() -> service.getResultsByPeriod(10L)).isInstanceOf(ForbiddenException.class);
+        assertThatThrownBy(() -> service.getResultsByPeriod(10L, PAGE)).isInstanceOf(ForbiddenException.class);
         verifyNoInteractions(results);
     }
 
     @Test void registeredPeriodQueryOnlyUsesOwnPublishedResults() {
         when(members.findByStudentIdAndPeriodId(1L, 10L)).thenReturn(Optional.of(group.getMembers().get(0)));
-        when(results.findPublishedResultsByStudentIdAndPeriodId(1L, 10L)).thenReturn(List.of(result));
-        assertThat(service.getResultsByPeriod(10L)).hasSize(1);
+        when(results.findPublishedResultsByStudentIdAndPeriodId(1L, 10L, PAGE)).thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(result)));
+        assertThat(service.getResultsByPeriod(10L, PAGE)).hasSize(1);
         verify(results, never()).findByPeriodId(any());
     }
 
@@ -115,8 +117,8 @@ class GradeAndResultServiceTest {
 
     @Test void staffRetainsPeriodWideAccess() {
         authenticate(RoleType.ROLE_DEAN);
-        when(results.findByPeriodId(10L)).thenReturn(List.of(result));
-        assertThat(service.getResultsByPeriod(10L)).hasSize(1);
+        when(results.findByPeriodId(10L, PAGE)).thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(result)));
+        assertThat(service.getResultsByPeriod(10L, PAGE)).hasSize(1);
         verifyNoInteractions(members);
     }
 

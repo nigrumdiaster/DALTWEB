@@ -1,41 +1,39 @@
 package com.daltweb.topicmanagement.repository;
 
-import com.daltweb.topicmanagement.constant.TopicApprovalStatus;
-import com.daltweb.topicmanagement.entity.Topic;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
+import com.daltweb.topicmanagement.entity.*;
+import com.daltweb.topicmanagement.constant.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
+import java.util.*;
 
-import java.util.List;
-import java.util.Locale;
-
-@Repository
 public interface TopicRepository extends JpaRepository<Topic, Long> {
     List<Topic> findByPeriodId(Long periodId);
-    List<Topic> findByDepartmentId(Long departmentId);
-    List<Topic> findByPrimaryAdvisorId(Long primaryAdvisorId);
-    List<Topic> findByPeriodIdAndDepartmentId(Long periodId, Long departmentId);
-    List<Topic> findByPeriodIdAndApprovalStatus(Long periodId, TopicApprovalStatus approvalStatus);
-    List<Topic> findByPeriodIdAndApprovalStatusAndIsAssignedFalse(Long periodId, TopicApprovalStatus approvalStatus);
+    long countByPeriodId(Long periodId);
+    boolean existsByPeriodId(Long periodId);
 
-    @Query("SELECT t FROM Topic t WHERE " +
+    @Query("SELECT t.period.id AS periodId, COUNT(t) AS total FROM Topic t WHERE t.period.id IN :ids GROUP BY t.period.id")
+    List<PeriodCount> countForPeriods(@Param("ids") Collection<Long> ids);
+
+    @Query("SELECT t FROM Topic t LEFT JOIN t.coAdvisor co WHERE " +
            "(:periodId IS NULL OR t.period.id = :periodId) AND " +
            "(:departmentId IS NULL OR t.department.id = :departmentId) AND " +
            "(:status IS NULL OR t.approvalStatus = :status) AND " +
            "(:isAssigned IS NULL OR t.isAssigned = :isAssigned) AND " +
-           "(LOWER(t.titleVi) LIKE :pattern OR " +
-           "LOWER(t.titleEn) LIKE :pattern OR " +
-           "LOWER(t.primaryAdvisor.fullName) LIKE :pattern)")
-    List<Topic> filterTopicsByPattern(@Param("periodId") Long periodId,
-                             @Param("departmentId") Long departmentId,
-                             @Param("status") TopicApprovalStatus status,
-                             @Param("isAssigned") Boolean isAssigned,
-                             @Param("pattern") String pattern);
+           "(:advisorId IS NULL OR t.primaryAdvisor.id = :advisorId OR co.id = :advisorId) AND " +
+           "(LOWER(t.code) LIKE :pattern OR LOWER(t.titleVi) LIKE :pattern OR " +
+           "LOWER(t.titleEn) LIKE :pattern OR LOWER(t.primaryAdvisor.fullName) LIKE :pattern OR " +
+           "LOWER(co.fullName) LIKE :pattern OR LOWER(t.department.name) LIKE :pattern)")
+    @EntityGraph(attributePaths = {"department", "period", "primaryAdvisor", "coAdvisor", "approvedBy"})
+    Page<Topic> filterTopicsByPattern(@Param("periodId") Long periodId, @Param("departmentId") Long departmentId,
+            @Param("status") TopicApprovalStatus status, @Param("isAssigned") Boolean isAssigned,
+            @Param("pattern") String pattern, @Param("advisorId") Long advisorId, Pageable pageable);
 
-    default List<Topic> filterTopics(Long periodId, Long departmentId, TopicApprovalStatus status,
-                                    Boolean isAssigned, String keyword) {
+    default Page<Topic> filterTopics(Long periodId, Long departmentId, TopicApprovalStatus status,
+            Boolean isAssigned, String keyword, Long advisorId, Pageable pageable) {
         String pattern = "%" + (keyword == null ? "" : keyword.toLowerCase(Locale.ROOT)) + "%";
-        return filterTopicsByPattern(periodId, departmentId, status, isAssigned, pattern);
+        return filterTopicsByPattern(periodId, departmentId, status, isAssigned, pattern, advisorId, pageable);
     }
+
 }

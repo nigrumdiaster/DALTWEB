@@ -1,5 +1,7 @@
 package com.daltweb.topicmanagement.service;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
 import com.daltweb.topicmanagement.constant.CouncilRole;
 import com.daltweb.topicmanagement.constant.GraderRole;
 import com.daltweb.topicmanagement.constant.RoleType;
@@ -197,13 +199,12 @@ public class GradeAndResultService {
     }
 
     @Transactional(readOnly = true)
-    public List<FinalResultDto> getResultsByPeriod(Long periodId) {
+    public Page<FinalResultDto> getResultsByPeriod(Long periodId, Pageable pageable) {
         if (SecurityUtils.hasRole(RoleType.ROLE_STUDENT)) {
-            return getMyStudentResults(periodId);
+            return getMyStudentResults(periodId, pageable);
         }
-        return finalResultRepository.findByPeriodId(periodId).stream()
-                .map(this::mapToFinalResultDto)
-                .collect(Collectors.toList());
+        return finalResultRepository.findByPeriodId(periodId, pageable)
+                .map(this::mapToFinalResultDto);
     }
 
     @Transactional(readOnly = true)
@@ -215,7 +216,7 @@ public class GradeAndResultService {
     }
 
     @Transactional(readOnly = true)
-    public List<FinalResultDto> getMyStudentResults(Long periodId) {
+    public Page<FinalResultDto> getMyStudentResults(Long periodId, Pageable pageable) {
         Long currentUserId = SecurityUtils.getCurrentUserId();
         if (periodId != null) {
             GroupMember member = memberRepository.findByStudentIdAndPeriodId(currentUserId, periodId)
@@ -224,18 +225,16 @@ public class GradeAndResultService {
                 throw new ForbiddenException("Bạn chưa đăng ký đề tài trong đợt này!");
             }
         }
-        List<FinalResult> results = periodId == null
-                ? finalResultRepository.findPublishedResultsByStudentId(currentUserId)
-                : finalResultRepository.findPublishedResultsByStudentIdAndPeriodId(currentUserId, periodId);
-        return results.stream()
-                .map(this::mapToFinalResultDto)
-                .collect(Collectors.toList());
+        Page<FinalResult> results = periodId == null
+                ? finalResultRepository.findPublishedResultsByStudentId(currentUserId, pageable)
+                : finalResultRepository.findPublishedResultsByStudentIdAndPeriodId(currentUserId, periodId, pageable);
+        return results
+                .map(this::mapToFinalResultDto);
     }
 
     @Transactional(readOnly = true)
-    public List<RegistrationPeriodDto> getMyResultPeriods() {
-        return periodRepository.findRegisteredByStudentId(SecurityUtils.getCurrentUserId()).stream()
-                .map(periodService::mapToDto).toList();
+    public Page<RegistrationPeriodDto> getMyResultPeriods(Pageable pageable) {
+        return periodService.mapPage(periodRepository.findRegisteredByStudentId(SecurityUtils.getCurrentUserId(), pageable));
     }
 
     @Transactional(readOnly = true)
@@ -299,7 +298,7 @@ public class GradeAndResultService {
                 .periodName(res.getPeriod().getName())
                 .topicId(res.getTopic().getId())
                 .topicTitleVi(res.getTopic().getTitleVi())
-                .topic(topicService.mapToDto(res.getTopic()))
+                .topic(topicService.mapToDto(res.getTopic(), res.getStudentGroup()))
                 .studentGroupId(res.getStudentGroup().getId())
                 .studentGroupName(res.getStudentGroup().getName())
                 .studentGroup(groupService.mapToDto(res.getStudentGroup()))

@@ -11,7 +11,6 @@ import java.util.Optional;
 @Repository
 public interface CouncilMemberRepository extends JpaRepository<CouncilMember, Long> {
     List<CouncilMember> findByCouncilId(Long councilId);
-    List<CouncilMember> findByLecturerId(Long lecturerId);
-    Boolean existsByCouncilIdAndLecturerId(Long councilId, Long lecturerId);
+
     Optional<CouncilMember> findByCouncilIdAndCouncilRole(Long councilId, CouncilRole councilRole);
 }

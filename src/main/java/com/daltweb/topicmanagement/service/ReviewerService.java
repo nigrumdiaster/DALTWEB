@@ -1,5 +1,7 @@
 package com.daltweb.topicmanagement.service;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
 import com.daltweb.topicmanagement.constant.GraderRole;
 import com.daltweb.topicmanagement.constant.RoleType;
 import com.daltweb.topicmanagement.constant.PeriodStatus;
@@ -41,21 +43,21 @@ public class ReviewerService {
     }
 
     @Transactional(readOnly = true)
-    public List<ReviewerAssignmentDto> getAssignmentsByPeriod(Long periodId) {
+    public Page<ReviewerAssignmentDto> getAssignmentsByPeriod(Long periodId, List<Long> topicIds, Pageable pageable) {
         if (SecurityUtils.hasRole(RoleType.ROLE_STUDENT)) {
             throw new ForbiddenException("Sinh viên tra cứu điểm qua chức năng kết quả của mình!");
         }
-        return reviewerAssignmentRepository.findByPeriodId(periodId).stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+        if (topicIds != null && topicIds.isEmpty()) return Page.empty(pageable);
+        return (topicIds == null ? reviewerAssignmentRepository.findByPeriodId(periodId, pageable)
+                : reviewerAssignmentRepository.findByPeriodIdAndTopicIdIn(periodId, topicIds, pageable))
+                .map(this::mapToDto);
     }
 
     @Transactional(readOnly = true)
-    public List<ReviewerAssignmentDto> getMyReviewTasks() {
+    public Page<ReviewerAssignmentDto> getMyReviewTasks(Pageable pageable) {
         Long currentUserId = SecurityUtils.getCurrentUserId();
-        return reviewerAssignmentRepository.findByReviewerId(currentUserId).stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+        return reviewerAssignmentRepository.findByReviewerId(currentUserId, pageable)
+                .map(this::mapToDto);
     }
 
     @Transactional

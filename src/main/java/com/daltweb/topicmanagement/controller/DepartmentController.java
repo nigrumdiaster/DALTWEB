@@ -1,5 +1,7 @@
 package com.daltweb.topicmanagement.controller;
 
+import com.daltweb.topicmanagement.dto.common.Pagination;
+import org.springframework.data.domain.Page;
 import com.daltweb.topicmanagement.dto.common.ApiResponse;
 import com.daltweb.topicmanagement.dto.department.DepartmentDto;
 import com.daltweb.topicmanagement.dto.department.DepartmentRequest;
@@ -27,9 +29,11 @@ public class DepartmentController {
 
     @GetMapping
     @Operation(summary = "Lấy danh sách tất cả các bộ môn")
-    public ResponseEntity<ApiResponse<List<DepartmentDto>>> getAllDepartments() {
-        List<DepartmentDto> list = departmentService.getAllDepartments();
-        return ResponseEntity.ok(ApiResponse.success(list));
+    public ResponseEntity<ApiResponse<List<DepartmentDto>>> getAllDepartments(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int limit) {
+        Page<DepartmentDto> list = departmentService.getAllDepartments(Pagination.request(page, limit));
+        return ResponseEntity.ok(ApiResponse.paged(list));
     }
 
     @GetMapping("/{id}")

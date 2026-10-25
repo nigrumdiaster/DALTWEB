@@ -1,5 +1,7 @@
 package com.daltweb.topicmanagement.controller;
 
+import com.daltweb.topicmanagement.dto.common.Pagination;
+import org.springframework.data.domain.Page;
 import com.daltweb.topicmanagement.constant.GroupStatus;
 import com.daltweb.topicmanagement.dto.common.ApiResponse;
 import com.daltweb.topicmanagement.dto.group.*;
@@ -29,9 +31,13 @@ public class StudentGroupController {
     @Operation(summary = "Danh sách nhóm sinh viên trong đợt")
     public ResponseEntity<ApiResponse<List<StudentGroupDto>>> getGroups(
             @RequestParam(required = false) Long periodId,
-            @RequestParam(required = false) GroupStatus status) {
-        List<StudentGroupDto> list = groupService.getGroups(periodId, status);
-        return ResponseEntity.ok(ApiResponse.success(list));
+            @RequestParam(required = false) GroupStatus status,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long advisorId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int limit) {
+        Page<StudentGroupDto> list = groupService.getGroups(periodId, status, keyword, advisorId, Pagination.request(page, limit));
+        return ResponseEntity.ok(ApiResponse.paged(list));
     }
 
     @GetMapping("/{id}")

@@ -1,5 +1,7 @@
 package com.daltweb.topicmanagement.service;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
 import com.daltweb.topicmanagement.constant.PeriodStatus;
 import com.daltweb.topicmanagement.constant.RoleType;
 import com.daltweb.topicmanagement.constant.TopicApprovalStatus;
@@ -11,6 +13,7 @@ import com.daltweb.topicmanagement.entity.Department;
 import com.daltweb.topicmanagement.entity.RegistrationPeriod;
 import com.daltweb.topicmanagement.entity.Topic;
 import com.daltweb.topicmanagement.entity.User;
+import com.daltweb.topicmanagement.entity.StudentGroup;
 import com.daltweb.topicmanagement.exception.BadRequestException;
 import com.daltweb.topicmanagement.exception.ForbiddenException;
 import com.daltweb.topicmanagement.exception.ResourceNotFoundException;
@@ -26,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,19 +50,13 @@ public class TopicService {
     }
 
     @Transactional(readOnly = true)
-    public List<TopicDto> getTopics(Long periodId, Long departmentId, TopicApprovalStatus status, Boolean isAssigned, String keyword) {
-        return topicRepository.filterTopics(periodId, departmentId, status, isAssigned, keyword)
-                .stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+    public Page<TopicDto> getTopics(Long periodId, Long departmentId, TopicApprovalStatus status, Boolean isAssigned, String keyword, Long advisorId, Pageable pageable) {
+        return mapPage(topicRepository.filterTopics(periodId, departmentId, status, isAssigned, keyword, advisorId, pageable));
     }
 
     @Transactional(readOnly = true)
-    public List<TopicDto> getApprovedPublishedTopics(Long periodId, Long departmentId) {
-        return topicRepository.filterTopics(periodId, departmentId, TopicApprovalStatus.APPROVED, null, null)
-                .stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+    public Page<TopicDto> getApprovedPublishedTopics(Long periodId, Long departmentId, Pageable pageable) {
+        return mapPage(topicRepository.filterTopics(periodId, departmentId, TopicApprovalStatus.APPROVED, null, null, null, pageable));
     }
 
     @Transactional(readOnly = true)
@@ -218,7 +216,17 @@ public class TopicService {
     }
 
     public TopicDto mapToDto(Topic topic) {
-        var groupOpt = groupRepository.findByTopicId(topic.getId());
+        return mapToDto(topic, groupRepository.findByTopicId(topic.getId()).orElse(null));
+    }
+
+    private Page<TopicDto> mapPage(Page<Topic> topics) {
+        if (topics.isEmpty()) return topics.map(t -> mapToDto(t, null));
+        Map<Long, StudentGroup> groups = groupRepository.findByTopicIdIn(topics.map(Topic::getId).getContent()).stream()
+                .collect(Collectors.toMap(g -> g.getTopic().getId(), g -> g));
+        return topics.map(topic -> mapToDto(topic, groups.get(topic.getId())));
+    }
+
+    public TopicDto mapToDto(Topic topic, StudentGroup group) {
 
         return TopicDto.builder()
                 .id(topic.getId())
@@ -244,8 +252,8 @@ public class TopicService {
                 .approvedByName(topic.getApprovedBy() != null ? topic.getApprovedBy().getFullName() : null)
                 .approvedAt(topic.getApprovedAt())
                 .isAssigned(topic.getIsAssigned())
-                .assignedGroupId(groupOpt.map(g -> g.getId()).orElse(null))
-                .assignedGroupName(groupOpt.map(g -> g.getName()).orElse(null))
+                .assignedGroupId(group != null ? group.getId() : null)
+                .assignedGroupName(group != null ? group.getName() : null)
                 .createdAt(topic.getCreatedAt())
                 .build();
     }

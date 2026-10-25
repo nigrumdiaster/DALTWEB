@@ -1,11 +1,14 @@
 package com.daltweb.topicmanagement.dto.common;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import org.springframework.data.domain.Page;
 
 public class ApiResponse<T> {
     private boolean success;
     private String message;
     private T data;
+    private Pagination pagination;
     private LocalDateTime timestamp = LocalDateTime.now();
 
     public ApiResponse() {}
@@ -19,6 +22,12 @@ public class ApiResponse<T> {
 
     public static <T> ApiResponse<T> success(T data) {
         return new ApiResponse<>(true, "Operation completed successfully", data, LocalDateTime.now());
+    }
+
+    public static <T> ApiResponse<List<T>> paged(Page<T> page) {
+        ApiResponse<List<T>> response = success(page.getContent());
+        response.setPagination(Pagination.from(page));
+        return response;
     }
 
     public static <T> ApiResponse<T> success(String message, T data) {
@@ -49,6 +58,8 @@ public class ApiResponse<T> {
     public String getMessage() { return message; }
     public void setMessage(String message) { this.message = message; }
     public T getData() { return data; }
+    public Pagination getPagination() { return pagination; }
+    public void setPagination(Pagination pagination) { this.pagination = pagination; }
     public void setData(T data) { this.data = data; }
     public LocalDateTime getTimestamp() { return timestamp; }
     public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
