@@ -167,6 +167,50 @@ sequenceDiagram
 
 ---
 
+## 📧 THÔNG BÁO QUA EMAIL
+
+Khi Admin hoặc Trưởng khoa đăng thông báo mới, hệ thống có thể gửi email đến các tài khoản đang hoạt động thuộc `targetRole`. Nếu `targetRole=null` (Tất cả), tất cả tài khoản đang hoạt động đều nhận email. Mỗi người nhận một email riêng, gồm tiêu đề, nội dung, người đăng và đường dẫn tệp đính kèm nếu có.
+
+1. Thêm các biến `MAIL_*` từ `.env.example` vào file `.env` tại thư mục `DALTWEB`.
+2. Điền `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` và `MAIL_FROM` theo tài khoản SMTP của bạn. `MAIL_PASSWORD` là thông tin xác thực SMTP do nhà cung cấp yêu cầu.
+3. Đặt `MAIL_ENABLED=true`, sau đó khởi động lại backend. Mặc định chức năng này tắt để dự án vẫn chạy khi chưa cấu hình SMTP.
+4. Trong trang quản trị thông báo, giữ lựa chọn **Gửi email cho người nhận khi đăng thông báo** để gửi, hoặc bỏ chọn để chỉ đăng lên bảng tin.
+
+Ví dụ cấu hình SMTP dùng STARTTLS trên cổng 587:
+
+```dotenv
+MAIL_ENABLED=true
+MAIL_HOST=smtp.example.com
+MAIL_PORT=587
+MAIL_USERNAME=notifications@example.com
+MAIL_PASSWORD=replace_with_smtp_password
+MAIL_FROM=notifications@example.com
+MAIL_SMTP_AUTH=true
+MAIL_STARTTLS_ENABLED=true
+MAIL_SSL_ENABLED=false
+```
+
+Với SMTP dùng TLS trực tiếp trên cổng 465, đặt `MAIL_PORT=465`, `MAIL_SSL_ENABLED=true`, `MAIL_STARTTLS_ENABLED=false` theo hướng dẫn nhà cung cấp.
+
+API hiện tại `POST /api/announcements` nhận thêm `sendEmail` (mặc định `true`):
+
+```json
+{
+  "title": "Lịch bảo vệ đề tài",
+  "content": "Sinh viên chuẩn bị báo cáo theo lịch đã công bố.",
+  "targetRole": "ROLE_STUDENT",
+  "sendEmail": true
+}
+```
+
+Email được xử lý nền sau khi giao dịch lưu thông báo thành công. Cập nhật hoặc xóa thông báo không gửi email. Phản hồi API xác nhận đã lưu thông báo; không xác nhận email đã đến hộp thư. Lỗi SMTP không làm mất thông báo và được ghi log; hệ thống tiếp tục gửi cho những người nhận còn lại. Xem log `Announcement <id>: sent ...` để kiểm tra số email gửi thành công tới SMTP.
+
+Hàng đợi email nằm trong bộ nhớ, tối đa 100 thông báo chờ. Email lỗi, hàng đợi đầy hoặc tác vụ mất do tiến trình dừng đột ngột chưa được tự động gửi lại.
+
+Tham khảo cấu hình trong [tài liệu Spring Boot Mail](https://docs.spring.io/spring-boot/3.3/reference/io/email.html).
+
+---
+
 ## 🛠️ CÁCH LẤY TOKEN & TEST TRÊN SWAGGER UI
 
 1. Truy cập [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html).

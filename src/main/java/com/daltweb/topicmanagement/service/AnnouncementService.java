@@ -5,11 +5,13 @@ import com.daltweb.topicmanagement.dto.announcement.AnnouncementDto;
 import com.daltweb.topicmanagement.dto.announcement.AnnouncementRequest;
 import com.daltweb.topicmanagement.entity.Announcement;
 import com.daltweb.topicmanagement.entity.User;
+import com.daltweb.topicmanagement.event.AnnouncementCreatedEvent;
 import com.daltweb.topicmanagement.exception.ResourceNotFoundException;
 import com.daltweb.topicmanagement.repository.AnnouncementRepository;
 import com.daltweb.topicmanagement.repository.UserRepository;
 import com.daltweb.topicmanagement.security.SecurityUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -21,10 +23,13 @@ public class AnnouncementService {
 
     private final AnnouncementRepository announcementRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public AnnouncementService(AnnouncementRepository announcementRepository, UserRepository userRepository) {
+    public AnnouncementService(AnnouncementRepository announcementRepository, UserRepository userRepository,
+                               ApplicationEventPublisher eventPublisher) {
         this.announcementRepository = announcementRepository;
         this.userRepository = userRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional(readOnly = true)
@@ -65,6 +70,10 @@ public class AnnouncementService {
                 .build();
 
         Announcement saved = announcementRepository.save(announcement);
+        if (Boolean.TRUE.equals(request.getSendEmail())) {
+            eventPublisher.publishEvent(new AnnouncementCreatedEvent(saved.getId(), saved.getTitle(),
+                    saved.getContent(), saved.getTargetRole(), currentUser.getFullName(), saved.getFileUrl()));
+        }
         return mapToDto(saved);
     }
 

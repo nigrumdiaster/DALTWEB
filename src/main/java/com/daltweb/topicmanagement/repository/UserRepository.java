@@ -22,6 +22,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findByDepartmentId(Long departmentId);
     List<User> findByRoleAndDepartmentId(RoleType role, Long departmentId);
 
+    @Query("SELECT DISTINCT u.email FROM User u WHERE u.active = true " +
+           "AND u.email IS NOT NULL AND TRIM(u.email) <> '' " +
+           "AND (:role IS NULL OR u.role = :role)")
+    List<String> findAnnouncementRecipientEmails(@Param("role") RoleType role);
+
     @Query("SELECT u FROM User u WHERE " +
            "(:role IS NULL OR u.role = :role) AND " +
            "(:departmentId IS NULL OR u.department.id = :departmentId) AND " +

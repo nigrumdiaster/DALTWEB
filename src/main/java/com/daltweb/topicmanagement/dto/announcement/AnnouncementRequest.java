@@ -14,6 +14,8 @@ public class AnnouncementRequest {
     private RoleType targetRole;
     private Boolean isPinned = false;
     private String fileUrl;
+    // Only applies when creating an announcement.
+    private Boolean sendEmail = true;
 
     public AnnouncementRequest() {}
 
@@ -27,4 +29,6 @@ public class AnnouncementRequest {
     public void setIsPinned(Boolean isPinned) { this.isPinned = isPinned; }
     public String getFileUrl() { return fileUrl; }
     public void setFileUrl(String fileUrl) { this.fileUrl = fileUrl; }
+    public Boolean getSendEmail() { return sendEmail; }
+    public void setSendEmail(Boolean sendEmail) { this.sendEmail = sendEmail; }
 }
