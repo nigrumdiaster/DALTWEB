@@ -24,6 +24,9 @@ import java.util.stream.Collectors;
 @Service
 public class StudentGroupService {
 
+    private static final int MIN_GROUP_MEMBERS = 3;
+    private static final int MAX_GROUP_MEMBERS = 5;
+
     private final StudentGroupRepository groupRepository;
     private final GroupMemberRepository memberRepository;
     private final RegistrationPeriodRepository periodRepository;
@@ -105,8 +108,8 @@ public class StudentGroupService {
         savedGroup.getMembers().add(leader);
 
         if (request.getMemberStudentIds() != null && !request.getMemberStudentIds().isEmpty()) {
-            if (request.getMemberStudentIds().size() > 2) {
-                throw new BadRequestException("Nhóm chỉ có tối đa 3 thành viên (1 nhóm trưởng + tối đa 2 thành viên)!");
+            if (request.getMemberStudentIds().size() > MAX_GROUP_MEMBERS - 1) {
+                throw new BadRequestException("Nhóm chỉ có tối đa 5 sinh viên (1 nhóm trưởng + tối đa 4 thành viên)!");
             }
             for (Long memberId : request.getMemberStudentIds()) {
                 if (Objects.equals(memberId, currentUserId)) continue;
@@ -132,8 +135,8 @@ public class StudentGroupService {
             throw new BadRequestException("Nhóm đã nộp báo cáo hoặc hoàn thành, không thể thay đổi thành viên!");
         }
 
-        if (group.getMembers().size() >= 3) {
-            throw new BadRequestException("Nhóm đã đủ số lượng tối đa (3 sinh viên)!");
+        if (group.getMembers().size() >= MAX_GROUP_MEMBERS) {
+            throw new BadRequestException("Nhóm đã đủ số lượng tối đa (5 sinh viên)!");
         }
 
         addMemberInternal(group, request.getStudentId());
@@ -180,6 +183,10 @@ public class StudentGroupService {
             throw new BadRequestException("Không thể xóa nhóm trưởng khỏi nhóm!");
         }
 
+        if (group.getTopic() != null && group.getMembers().size() <= MIN_GROUP_MEMBERS) {
+            throw new BadRequestException("Nhóm đã đăng ký đề tài phải có ít nhất 3 sinh viên. Hãy hủy đăng ký đề tài trước khi xóa thành viên!");
+        }
+
         group.getMembers().remove(member);
         memberRepository.delete(member);
     }
@@ -190,6 +197,7 @@ public class StudentGroupService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhóm"));
 
         validateLeaderPermission(group, "Chỉ nhóm trưởng mới có quyền đăng ký đề tài cho nhóm!");
+        validateGroupSize(group);
 
         RegistrationPeriod period = group.getPeriod();
         LocalDateTime now = LocalDateTime.now();
@@ -267,6 +275,7 @@ public class StudentGroupService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhóm"));
 
         validateLeaderPermission(group, "Việc nộp báo cáo đề tài chỉ được thực hiện bởi nhóm trưởng!");
+        validateGroupSize(group);
 
         if (group.getTopic() == null) {
             throw new BadRequestException("Nhóm chưa đăng ký đề tài, không thể nộp báo cáo!");
@@ -284,6 +293,13 @@ public class StudentGroupService {
 
         StudentGroup saved = groupRepository.save(group);
         return mapToDto(saved);
+    }
+
+    private void validateGroupSize(StudentGroup group) {
+        int memberCount = group.getMembers().size();
+        if (memberCount < MIN_GROUP_MEMBERS || memberCount > MAX_GROUP_MEMBERS) {
+            throw new BadRequestException("Nhóm phải có từ 3 đến 5 sinh viên để đăng ký đề tài hoặc nộp báo cáo!");
+        }
     }
 
     private void validateLeaderPermission(StudentGroup group, String errorMessage) {

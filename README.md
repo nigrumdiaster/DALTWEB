@@ -30,7 +30,7 @@ Hệ thống được thiết kế theo chuẩn RESTful API với quy trình ngh
   * Trưởng bộ môn phê duyệt sơ bộ đề tài theo chuyên môn.
   * Trưởng khoa phê duyệt chính thức và công bố danh sách đề tài ra toàn khoa.
 * **Quy trình Giai đoạn 2 (Phase 2) - Sinh viên đăng ký & Nộp báo cáo:**
-  * Sinh viên thành lập nhóm (1 - 3 thành viên, chỉ định Trưởng nhóm).
+  * Sinh viên thành lập nhóm, tối đa 5 thành viên và có đúng 1 Trưởng nhóm. Có thể bổ sung thành viên sau khi tạo; nhóm phải đủ 3 - 5 sinh viên trước khi đăng ký đề tài hoặc nộp báo cáo.
   * Nhóm sinh viên chọn và đăng ký đề tài từ danh sách đã công bố.
   * Sinh viên nộp báo cáo tiến độ/báo cáo toàn văn kèm link tài liệu.
 * **Phân công Giảng viên phản biện (GVPB):**
@@ -152,7 +152,7 @@ sequenceDiagram
     T->>T: Phê duyệt chính thức & Công bố danh sách đề tài
     
     Note over SV: 2. Mở Giai đoạn 2 (Phase 2)
-    SV->>SV: Lập nhóm sinh viên (1 - 3 bạn)
+    SV->>SV: Lập nhóm sinh viên (3 - 5 bạn trước khi đăng ký đề tài)
     SV->>GV: Đăng ký đề tài & Nộp báo cáo tiến độ
     
     Note over GV,HD: 3. Đánh giá & Chấm điểm

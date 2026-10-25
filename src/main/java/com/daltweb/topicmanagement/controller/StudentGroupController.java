@@ -16,7 +16,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/groups")
-@Tag(name = "6. Student Groups & Topic Registration", description = "Quản lý nhóm sinh viên (tối đa 3 SV), đăng ký đề tài (GĐ2), và nộp báo cáo bởi nhóm trưởng")
+@Tag(name = "6. Student Groups & Topic Registration", description = "Quản lý nhóm sinh viên (3–5 SV khi đăng ký đề tài và nộp báo cáo), đăng ký đề tài (GĐ2), và nộp báo cáo bởi nhóm trưởng")
 public class StudentGroupController {
 
     private final StudentGroupService groupService;
@@ -60,7 +60,7 @@ public class StudentGroupController {
 
     @PostMapping("/{id}/members")
     @PreAuthorize("hasRole('STUDENT')")
-    @Operation(summary = "Nhóm trưởng thêm thành viên vào nhóm (tối đa 3 thành viên)")
+    @Operation(summary = "Nhóm trưởng thêm thành viên vào nhóm (tối đa 5 sinh viên)")
     public ResponseEntity<ApiResponse<StudentGroupDto>> addMember(
             @PathVariable Long id,
             @Valid @RequestBody AddMemberRequest request) {
