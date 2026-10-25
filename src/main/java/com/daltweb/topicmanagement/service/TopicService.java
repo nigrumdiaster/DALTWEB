@@ -74,14 +74,11 @@ public class TopicService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đợt đăng ký"));
 
         LocalDateTime now = LocalDateTime.now();
-        boolean isAdmin = SecurityUtils.hasRole(RoleType.ROLE_ADMIN) || SecurityUtils.hasRole(RoleType.ROLE_DEAN);
-        if (!isAdmin) {
-            if (period.getStatus() != PeriodStatus.PHASE1_LECTURER_REGISTRATION) {
-                throw new BadRequestException("Đợt đăng ký hiện không ở Giai đoạn 1 (Xây dựng & Phê duyệt đề tài), giảng viên không thể đề xuất đề tài mới!");
-            }
-            if (now.isBefore(period.getLecturerRegStart()) || now.isAfter(period.getLecturerRegEnd())) {
-                throw new BadRequestException("Hiện tại không nằm trong thời gian cho phép giảng viên đăng ký đề tài!");
-            }
+        if (period.getStatus() != PeriodStatus.PHASE1_LECTURER_REGISTRATION) {
+            throw new BadRequestException("Chỉ được đề xuất đề tài trong Giai đoạn 1 đăng ký đề tài!");
+        }
+        if (now.isBefore(period.getLecturerRegStart()) || now.isAfter(period.getLecturerRegEnd())) {
+            throw new BadRequestException("Hiện tại không nằm trong thời gian cho phép giảng viên đăng ký đề tài!");
         }
 
         Department department = departmentRepository.findById(request.getDepartmentId())
@@ -173,6 +170,10 @@ public class TopicService {
     public TopicDto approveTopic(Long id, TopicApprovalRequest request) {
         Topic topic = topicRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đề tài với ID: " + id));
+
+        if (topic.getPeriod().getStatus() != PeriodStatus.PHASE1_REVIEWING) {
+            throw new BadRequestException("Chỉ được phê duyệt đề tài trong giai đoạn duyệt danh sách đề tài!");
+        }
 
         Long currentUserId = SecurityUtils.getCurrentUserId();
         User currentUser = userRepository.findById(currentUserId)

@@ -2,6 +2,7 @@ package com.daltweb.topicmanagement.service;
 
 import com.daltweb.topicmanagement.constant.GraderRole;
 import com.daltweb.topicmanagement.constant.RoleType;
+import com.daltweb.topicmanagement.constant.PeriodStatus;
 import com.daltweb.topicmanagement.dto.reviewer.AssignReviewerRequest;
 import com.daltweb.topicmanagement.dto.reviewer.ReviewerAssignmentDto;
 import com.daltweb.topicmanagement.dto.reviewer.ReviewerGradeRequest;
@@ -41,6 +42,9 @@ public class ReviewerService {
 
     @Transactional(readOnly = true)
     public List<ReviewerAssignmentDto> getAssignmentsByPeriod(Long periodId) {
+        if (SecurityUtils.hasRole(RoleType.ROLE_STUDENT)) {
+            throw new ForbiddenException("Sinh viên tra cứu điểm qua chức năng kết quả của mình!");
+        }
         return reviewerAssignmentRepository.findByPeriodId(periodId).stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
@@ -94,6 +98,10 @@ public class ReviewerService {
     public ReviewerAssignmentDto gradeReview(ReviewerGradeRequest request) {
         Topic topic = topicRepository.findById(request.getTopicId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đề tài"));
+
+        if (topic.getPeriod().getStatus() != PeriodStatus.REVIEWING) {
+            throw new BadRequestException("Chỉ được nhập điểm phản biện trong giai đoạn phản biện!");
+        }
 
         Long currentUserId = SecurityUtils.getCurrentUserId();
 

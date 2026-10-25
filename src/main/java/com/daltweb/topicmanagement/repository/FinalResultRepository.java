@@ -22,6 +22,11 @@ public interface FinalResultRepository extends JpaRepository<FinalResult, Long> 
            "WHERE m.student.id = :studentId AND fr.isPublished = true")
     List<FinalResult> findPublishedResultsByStudentId(@Param("studentId") Long studentId);
 
+    @Query("SELECT fr FROM FinalResult fr JOIN fr.studentGroup.members m " +
+            "WHERE m.student.id = :studentId AND fr.isPublished = true AND fr.period.id = :periodId")
+    List<FinalResult> findPublishedResultsByStudentIdAndPeriodId(@Param("studentId") Long studentId,
+            @Param("periodId") Long periodId);
+
     @Query("SELECT fr FROM FinalResult fr " +
            "JOIN fr.studentGroup g " +
            "JOIN g.members m " +

@@ -2,6 +2,8 @@ package com.daltweb.topicmanagement.service;
 
 import com.daltweb.topicmanagement.constant.CouncilRole;
 import com.daltweb.topicmanagement.constant.GraderRole;
+import com.daltweb.topicmanagement.constant.PeriodStatus;
+import com.daltweb.topicmanagement.constant.PeriodType;
 import com.daltweb.topicmanagement.dto.council.*;
 import com.daltweb.topicmanagement.entity.*;
 import com.daltweb.topicmanagement.exception.BadRequestException;
@@ -168,6 +170,12 @@ public class DefenseCouncilService {
     public void gradeTopicInCouncil(Long councilId, CouncilGradingRequest request) {
         DefenseCouncil council = councilRepository.findById(councilId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hội đồng"));
+
+        PeriodStatus requiredStatus = council.getPeriod().getType() == PeriodType.GRADUATION_THESIS
+                ? PeriodStatus.DEFENSE : PeriodStatus.REVIEWING;
+        if (council.getPeriod().getStatus() != requiredStatus) {
+            throw new BadRequestException("Chỉ được nhập điểm hội đồng trong giai đoạn " + requiredStatus + "!");
+        }
 
         Long currentUserId = SecurityUtils.getCurrentUserId();
         User currentUser = userRepository.findById(currentUserId)

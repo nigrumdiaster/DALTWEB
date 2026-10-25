@@ -3,6 +3,10 @@ package com.daltweb.topicmanagement.service;
 import com.daltweb.topicmanagement.constant.CouncilRole;
 import com.daltweb.topicmanagement.constant.GraderRole;
 import com.daltweb.topicmanagement.constant.RoleType;
+import com.daltweb.topicmanagement.constant.PeriodStatus;
+import com.daltweb.topicmanagement.constant.PeriodType;
+import com.daltweb.topicmanagement.dto.period.RegistrationPeriodDto;
+import com.daltweb.topicmanagement.event.ResultPublishedEvent;
 import com.daltweb.topicmanagement.dto.council.FinalizeCouncilResultRequest;
 import com.daltweb.topicmanagement.dto.grade.AdvisorGradeRequest;
 import com.daltweb.topicmanagement.dto.grade.FinalResultDto;
@@ -15,6 +19,7 @@ import com.daltweb.topicmanagement.exception.ResourceNotFoundException;
 import com.daltweb.topicmanagement.repository.*;
 import com.daltweb.topicmanagement.security.SecurityUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -35,8 +40,14 @@ public class GradeAndResultService {
     private final UserRepository userRepository;
     private final TopicService topicService;
     private final StudentGroupService groupService;
+    private final GroupMemberRepository memberRepository;
+    private final RegistrationPeriodService periodService;
+    private final ResultValidationService resultValidation;
+    private final ApplicationEventPublisher events;
 
-    public GradeAndResultService(GradeRepository gradeRepository, FinalResultRepository finalResultRepository, TopicRepository topicRepository, StudentGroupRepository groupRepository, RegistrationPeriodRepository periodRepository, ReviewerAssignmentRepository reviewerAssignmentRepository, CouncilMemberRepository councilMemberRepository, CouncilTopicAssignmentRepository councilTopicAssignmentRepository, UserRepository userRepository, TopicService topicService, StudentGroupService groupService) {
+    public GradeAndResultService(GradeRepository gradeRepository, FinalResultRepository finalResultRepository, TopicRepository topicRepository, StudentGroupRepository groupRepository, RegistrationPeriodRepository periodRepository, ReviewerAssignmentRepository reviewerAssignmentRepository, CouncilMemberRepository councilMemberRepository, CouncilTopicAssignmentRepository councilTopicAssignmentRepository, UserRepository userRepository, TopicService topicService, StudentGroupService groupService,
+            GroupMemberRepository memberRepository, RegistrationPeriodService periodService,
+            ResultValidationService resultValidation, ApplicationEventPublisher events) {
         this.gradeRepository = gradeRepository;
         this.finalResultRepository = finalResultRepository;
         this.topicRepository = topicRepository;
@@ -48,6 +59,10 @@ public class GradeAndResultService {
         this.userRepository = userRepository;
         this.topicService = topicService;
         this.groupService = groupService;
+        this.memberRepository = memberRepository;
+        this.periodService = periodService;
+        this.resultValidation = resultValidation;
+        this.events = events;
     }
 
     @Transactional
@@ -58,6 +73,10 @@ public class GradeAndResultService {
 
         Topic topic = topicRepository.findById(request.getTopicId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đề tài với ID: " + request.getTopicId()));
+
+        if (!Set.of(PeriodStatus.IN_PROGRESS, PeriodStatus.REVIEWING, PeriodStatus.DEFENSE).contains(topic.getPeriod().getStatus())) {
+            throw new BadRequestException("Chỉ được nhập điểm GVHD trong giai đoạn thực hiện hoặc đánh giá đề tài!");
+        }
 
         boolean isPrimary = Objects.equals(topic.getPrimaryAdvisor().getId(), currentUserId);
         boolean isCo = topic.getCoAdvisor() != null && Objects.equals(topic.getCoAdvisor().getId(), currentUserId);
@@ -114,36 +133,16 @@ public class GradeAndResultService {
             throw new ForbiddenException("Chỉ Chủ tịch hội đồng chấm điểm hoặc Ban chủ nhiệm Khoa mới có quyền tổng hợp và chốt kết quả đề tài!");
         }
 
-        List<Grade> allGrades = gradeRepository.findByTopicId(topic.getId());
-
-        List<Grade> advisorGrades = allGrades.stream()
-                .filter(g -> g.getGraderRole() == GraderRole.ADVISOR || g.getGraderRole() == GraderRole.CO_ADVISOR)
-                .collect(Collectors.toList());
-        Double advisorAvg = advisorGrades.isEmpty() ? null :
-                advisorGrades.stream().mapToDouble(Grade::getScore).average().orElse(0.0);
-
-        var reviewerAssignment = reviewerAssignmentRepository.findByTopicId(topic.getId()).orElse(null);
-        Double reviewerScore = reviewerAssignment != null ? reviewerAssignment.getScore() : null;
-
-        List<Grade> councilGrades = allGrades.stream()
-                .filter(g -> g.getGraderRole() == GraderRole.COUNCIL_CHAIRMAN ||
-                             g.getGraderRole() == GraderRole.COUNCIL_SECRETARY ||
-                             g.getGraderRole() == GraderRole.COUNCIL_MEMBER)
-                .collect(Collectors.toList());
-        Double councilAvg = councilGrades.isEmpty() ? null :
-                councilGrades.stream().mapToDouble(Grade::getScore).average().orElse(0.0);
-
-        List<Double> validScores = new ArrayList<>();
-        if (advisorAvg != null) validScores.add(advisorAvg);
-        if (reviewerScore != null) validScores.add(reviewerScore);
-        if (councilAvg != null) validScores.add(councilAvg);
-
-        if (validScores.isEmpty()) {
-            throw new BadRequestException("Chưa có điểm thành phần nào được nhập cho đề tài này!");
+        PeriodStatus requiredStatus = topic.getPeriod().getType() == PeriodType.GRADUATION_THESIS
+                ? PeriodStatus.DEFENSE : PeriodStatus.REVIEWING;
+        if (topic.getPeriod().getStatus() != requiredStatus) {
+            throw new BadRequestException("Chỉ được chốt điểm trong giai đoạn " + requiredStatus + "!");
         }
-
-        double rawFinalScore = validScores.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
-        double finalScore = Math.round(rawFinalScore * 100.0) / 100.0;
+        ResultValidationService.Scores scores = resultValidation.calculate(topic);
+        Double advisorAvg = scores.advisor();
+        Double reviewerScore = scores.reviewer();
+        Double councilAvg = scores.council();
+        double finalScore = scores.total();
 
         String letterGrade = convertToLetterGrade(finalScore);
         boolean passed = finalScore >= 5.0;
@@ -170,21 +169,38 @@ public class GradeAndResultService {
 
     @Transactional
     public void publishResults(PublishResultRequest request) {
-        RegistrationPeriod period = periodRepository.findById(request.getPeriodId())
+        RegistrationPeriod period = periodRepository.findForUpdate(request.getPeriodId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đợt đăng ký"));
 
-        List<FinalResult> results = finalResultRepository.findByPeriodId(period.getId());
+        boolean publish = Boolean.TRUE.equals(request.getPublish());
+        if (publish && period.getStatus() != PeriodStatus.COMPLETED) {
+            throw new BadRequestException("Chỉ được công bố kết quả khi đợt đã hoàn thành!");
+        }
+        List<FinalResult> results = publish ? resultValidation.validatePeriodResults(period)
+                : finalResultRepository.findByPeriodId(period.getId());
         LocalDateTime now = LocalDateTime.now();
 
         for (FinalResult res : results) {
-            res.setIsPublished(request.getPublish());
-            res.setPublishedAt(request.getPublish() ? now : null);
+            boolean newlyPublished = publish && !Boolean.TRUE.equals(res.getIsPublished());
+            res.setIsPublished(publish);
+            if (!publish) res.setPublishedAt(null);
+            else if (newlyPublished) res.setPublishedAt(now);
             finalResultRepository.save(res);
+            if (newlyPublished) {
+                List<String> recipients = res.getStudentGroup().getMembers().stream()
+                        .map(m -> m.getStudent().getEmail())
+                        .filter(email -> email != null && !email.isBlank()).map(String::trim).toList();
+                events.publishEvent(new ResultPublishedEvent(res.getId(), period.getName(),
+                        res.getTopic().getTitleVi(), res.getFinalScore(), res.getLetterGrade(), recipients));
+            }
         }
     }
 
     @Transactional(readOnly = true)
     public List<FinalResultDto> getResultsByPeriod(Long periodId) {
+        if (SecurityUtils.hasRole(RoleType.ROLE_STUDENT)) {
+            return getMyStudentResults(periodId);
+        }
         return finalResultRepository.findByPeriodId(periodId).stream()
                 .map(this::mapToFinalResultDto)
                 .collect(Collectors.toList());
@@ -192,24 +208,56 @@ public class GradeAndResultService {
 
     @Transactional(readOnly = true)
     public FinalResultDto getTopicResult(Long topicId) {
+        validateStudentTopicAccess(topicId);
         FinalResult result = finalResultRepository.findByTopicId(topicId)
                 .orElseThrow(() -> new ResourceNotFoundException("Chưa có kết quả tổng hợp cho đề tài này!"));
         return mapToFinalResultDto(result);
     }
 
     @Transactional(readOnly = true)
-    public List<FinalResultDto> getMyStudentResults() {
+    public List<FinalResultDto> getMyStudentResults(Long periodId) {
         Long currentUserId = SecurityUtils.getCurrentUserId();
-        return finalResultRepository.findPublishedResultsByStudentId(currentUserId).stream()
+        if (periodId != null) {
+            GroupMember member = memberRepository.findByStudentIdAndPeriodId(currentUserId, periodId)
+                    .orElseThrow(() -> new ForbiddenException("Bạn chưa đăng ký đề tài trong đợt này!"));
+            if (member.getGroup().getTopic() == null) {
+                throw new ForbiddenException("Bạn chưa đăng ký đề tài trong đợt này!");
+            }
+        }
+        List<FinalResult> results = periodId == null
+                ? finalResultRepository.findPublishedResultsByStudentId(currentUserId)
+                : finalResultRepository.findPublishedResultsByStudentIdAndPeriodId(currentUserId, periodId);
+        return results.stream()
                 .map(this::mapToFinalResultDto)
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
+    public List<RegistrationPeriodDto> getMyResultPeriods() {
+        return periodRepository.findRegisteredByStudentId(SecurityUtils.getCurrentUserId()).stream()
+                .map(periodService::mapToDto).toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<GradeDto> getTopicGrades(Long topicId) {
+        validateStudentTopicAccess(topicId);
         return gradeRepository.findByTopicId(topicId).stream()
                 .map(this::mapToGradeDto)
                 .collect(Collectors.toList());
+    }
+
+    private void validateStudentTopicAccess(Long topicId) {
+        if (!SecurityUtils.hasRole(RoleType.ROLE_STUDENT)) return;
+        StudentGroup group = groupRepository.findByTopicId(topicId)
+                .orElseThrow(() -> new ForbiddenException("Bạn không có quyền xem điểm đề tài này!"));
+        boolean owns = group.getMembers().stream()
+                .anyMatch(m -> Objects.equals(m.getStudent().getId(), SecurityUtils.getCurrentUserId()));
+        if (!owns) throw new ForbiddenException("Bạn không có quyền xem điểm đề tài này!");
+        FinalResult result = finalResultRepository.findByTopicId(topicId)
+                .orElseThrow(() -> new ForbiddenException("Kết quả chưa được công bố!"));
+        if (!Boolean.TRUE.equals(result.getIsPublished())) {
+            throw new ForbiddenException("Kết quả chưa được công bố!");
+        }
     }
 
     private String convertToLetterGrade(double score) {

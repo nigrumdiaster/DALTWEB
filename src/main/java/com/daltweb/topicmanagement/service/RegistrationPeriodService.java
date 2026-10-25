@@ -2,6 +2,7 @@ package com.daltweb.topicmanagement.service;
 
 import com.daltweb.topicmanagement.constant.PeriodStatus;
 import com.daltweb.topicmanagement.constant.PeriodType;
+import com.daltweb.topicmanagement.constant.TopicApprovalStatus;
 import com.daltweb.topicmanagement.dto.period.PeriodCreateRequest;
 import com.daltweb.topicmanagement.dto.period.PeriodStatusRequest;
 import com.daltweb.topicmanagement.dto.period.PeriodUpdateRequest;
@@ -28,12 +29,15 @@ public class RegistrationPeriodService {
     private final UserRepository userRepository;
     private final TopicRepository topicRepository;
     private final StudentGroupRepository groupRepository;
+    private final ResultValidationService resultValidation;
 
-    public RegistrationPeriodService(RegistrationPeriodRepository periodRepository, UserRepository userRepository, TopicRepository topicRepository, StudentGroupRepository groupRepository) {
+    public RegistrationPeriodService(RegistrationPeriodRepository periodRepository, UserRepository userRepository, TopicRepository topicRepository, StudentGroupRepository groupRepository,
+            ResultValidationService resultValidation) {
         this.periodRepository = periodRepository;
         this.userRepository = userRepository;
         this.topicRepository = topicRepository;
         this.groupRepository = groupRepository;
+        this.resultValidation = resultValidation;
     }
 
     @Transactional(readOnly = true)
@@ -84,6 +88,10 @@ public class RegistrationPeriodService {
         RegistrationPeriod period = periodRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đợt đăng ký với ID: " + id));
 
+        if (period.getStatus() != PeriodStatus.DRAFT && period.getType() != request.getType()) {
+            throw new BadRequestException("Không được đổi loại đợt sau khi đã mở đăng ký!");
+        }
+
         validatePeriodDates(request.getType(), request.getLecturerRegStart(), request.getLecturerRegEnd(),
                 request.getStudentRegStart(), request.getStudentRegEnd(),
                 request.getReviewerDeadline(), request.getDefenseDate());
@@ -106,10 +114,38 @@ public class RegistrationPeriodService {
 
     @Transactional
     public RegistrationPeriodDto updatePeriodStatus(Long id, PeriodStatusRequest request) {
-        RegistrationPeriod period = periodRepository.findById(id)
+        RegistrationPeriod period = periodRepository.findForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đợt đăng ký với ID: " + id));
 
-        period.setStatus(request.getStatus());
+        PeriodStatus current = period.getStatus();
+        PeriodStatus target = request.getStatus();
+        if (target == null) throw new BadRequestException("Trạng thái không được để trống!");
+        if (current == PeriodStatus.COMPLETED || current == PeriodStatus.CANCELLED) {
+            throw new BadRequestException("Đợt đã kết thúc, không thể đổi trạng thái!");
+        }
+        PeriodStatus next = switch (current) {
+            case DRAFT -> PeriodStatus.PHASE1_LECTURER_REGISTRATION;
+            case PHASE1_LECTURER_REGISTRATION -> PeriodStatus.PHASE1_REVIEWING;
+            case PHASE1_REVIEWING -> PeriodStatus.PHASE2_STUDENT_REGISTRATION;
+            case PHASE2_STUDENT_REGISTRATION -> PeriodStatus.IN_PROGRESS;
+            case IN_PROGRESS -> PeriodStatus.REVIEWING;
+            case REVIEWING -> period.getType() == PeriodType.GRADUATION_THESIS
+                    ? PeriodStatus.DEFENSE : PeriodStatus.COMPLETED;
+            case DEFENSE -> PeriodStatus.COMPLETED;
+            default -> null;
+        };
+        if (target != PeriodStatus.CANCELLED && target != next) {
+            throw new BadRequestException("Không được bỏ qua hoặc quay lại giai đoạn. Trạng thái tiếp theo: " + next);
+        }
+        if (target == PeriodStatus.PHASE2_STUDENT_REGISTRATION) {
+            var topics = topicRepository.findByPeriodId(id);
+            if (topics.stream().noneMatch(t -> t.getApprovalStatus() == TopicApprovalStatus.APPROVED)
+                    || topics.stream().anyMatch(t -> t.getApprovalStatus() == TopicApprovalStatus.PENDING)) {
+                throw new BadRequestException("Phải duyệt xong danh sách đề tài và có ít nhất một đề tài được duyệt trước khi mở GĐ2!");
+            }
+        }
+        if (target == PeriodStatus.COMPLETED) resultValidation.validatePeriodResults(period);
+        period.setStatus(target);
         RegistrationPeriod updated = periodRepository.save(period);
         return mapToDto(updated);
     }
@@ -132,14 +168,14 @@ public class RegistrationPeriodService {
                                     java.time.LocalDateTime stuEnd,
                                     java.time.LocalDate reviewerDeadline,
                                     java.time.LocalDate defenseDate) {
-        if (lecStart.isAfter(lecEnd)) {
+        if (!lecStart.isBefore(lecEnd)) {
             throw new BadRequestException("Thời gian bắt đầu đăng ký của GV phải trước thời gian kết thúc của GV");
         }
-        if (stuStart.isAfter(stuEnd)) {
+        if (!stuStart.isBefore(stuEnd)) {
             throw new BadRequestException("Thời gian bắt đầu đăng ký của SV phải trước thời gian kết thúc của SV");
         }
-        if (lecStart.isAfter(stuStart)) {
-            throw new BadRequestException("Giai đoạn 1 (GV đăng ký) phải bắt đầu trước hoặc bằng Giai đoạn 2 (SV đăng ký)");
+        if (lecEnd.isAfter(stuStart)) {
+            throw new BadRequestException("Giai đoạn 1 phải kết thúc trước hoặc bằng thời gian bắt đầu Giai đoạn 2!");
         }
 
         if (type == PeriodType.SPECIALIZED_PROJECT || type == PeriodType.GRADUATION_THESIS) {

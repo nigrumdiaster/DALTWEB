@@ -26,6 +26,7 @@ public class ReviewerController {
     }
 
     @GetMapping("/period/{periodId}")
+    @PreAuthorize("hasAnyRole('LECTURER', 'DEPARTMENT_HEAD', 'ADMIN', 'DEAN')")
     @Operation(summary = "Danh sách phân công GVPB theo đợt")
     public ResponseEntity<ApiResponse<List<ReviewerAssignmentDto>>> getAssignmentsByPeriod(@PathVariable Long periodId) {
         List<ReviewerAssignmentDto> list = reviewerService.getAssignmentsByPeriod(periodId);

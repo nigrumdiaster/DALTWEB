@@ -169,6 +169,20 @@ sequenceDiagram
 
 ## 📧 THÔNG BÁO QUA EMAIL
 
+### Công bố kết quả và tra cứu điểm
+
+* Sinh viên chỉ xem được kết quả **đã công bố của nhóm mình**. Các API xem điểm thành phần, kết quả theo đề tài và kết quả theo đợt đều kiểm tra quyền tại backend. Sinh viên không được xem danh sách điểm phản biện theo đợt.
+* `GET /api/results/student/periods` trả các đợt sinh viên đã đăng ký đề tài, kể cả đợt chưa có kết quả. Giao diện sinh viên dùng danh sách này để chọn đợt.
+* `GET /api/results/student/my-results?periodId=<id>` trả kết quả đã công bố của sinh viên trong đợt được chọn; yêu cầu đợt chưa đăng ký trả `403`. Bỏ `periodId` để lấy tất cả kết quả đã công bố của chính sinh viên.
+* Trình tự trạng thái: `DRAFT → PHASE1_LECTURER_REGISTRATION → PHASE1_REVIEWING → PHASE2_STUDENT_REGISTRATION → IN_PROGRESS → REVIEWING → COMPLETED`. KLTN phải qua `DEFENSE` sau `REVIEWING` trước khi hoàn thành. Không được nhảy bước, quay lại hoặc mở lại đợt đã kết thúc; có thể hủy đợt chưa kết thúc.
+* Trước khi mở GĐ2, toàn bộ đề tài phải được duyệt hoặc từ chối và phải có ít nhất một đề tài được duyệt. Hai khoảng thời gian đăng ký GV/SV không được chồng lấn. Đề xuất đề tài thực hiện trong GĐ1 đăng ký; phê duyệt thực hiện trong `PHASE1_REVIEWING`.
+* Chốt điểm yêu cầu đủ điểm GVHD chính và GVHD phụ nếu có. TLCN/KLTN bắt buộc có điểm phản biện. KLTN hoặc đề tài đã gán hội đồng phải có điểm của **tất cả** thành viên hội đồng hợp lệ (3–5 GV). Điểm phải nằm trong khoảng 0–10.
+* Điểm hội đồng là trung bình cộng của các thành viên; điểm tổng kết là trung bình cộng các thành phần GVHD, phản biện, hội đồng áp dụng cho đề tài. Chốt điểm trong `REVIEWING`, riêng KLTN trong `DEFENSE`. Đợt chỉ hoàn thành khi tất cả nhóm đã đăng ký đề tài có kết quả được chốt và khớp điểm thành phần hiện tại.
+* Chỉ công bố khi đợt đã `COMPLETED`. Khi một kết quả chuyển từ chưa công bố sang đã công bố, hệ thống tạo email riêng cho từng thành viên nhóm có địa chỉ email, sử dụng cùng cấu hình `MAIL_*` bên dưới. Gọi công bố lại khi kết quả vẫn đang công bố không gửi trùng; thu hồi rồi công bố lại sẽ gửi lại.
+* Email kết quả được gửi nền **sau khi giao dịch công bố commit thành công**, dùng chung executor với email thông báo. Cần `MAIL_ENABLED=true` và cấu hình SMTP hợp lệ. Khi email tắt, kết quả vẫn được công bố trên hệ thống. Log `Result <id>: sent ...` ghi số thư SMTP chấp nhận; lỗi SMTP/hàng đợi đầy chưa có cơ chế gửi lại tự động, hàng đợi không lưu bền vững.
+
+### Email thông báo trên bảng tin
+
 Khi Admin hoặc Trưởng khoa đăng thông báo mới, hệ thống có thể gửi email đến các tài khoản đang hoạt động thuộc `targetRole`. Nếu `targetRole=null` (Tất cả), tất cả tài khoản đang hoạt động đều nhận email. Mỗi người nhận một email riêng, gồm tiêu đề, nội dung, người đăng và đường dẫn tệp đính kèm nếu có.
 
 1. Thêm các biến `MAIL_*` từ `.env.example` vào file `.env` tại thư mục `DALTWEB`.

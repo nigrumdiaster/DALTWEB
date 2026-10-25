@@ -3,6 +3,7 @@ package com.daltweb.topicmanagement.controller;
 import com.daltweb.topicmanagement.dto.common.ApiResponse;
 import com.daltweb.topicmanagement.dto.council.FinalizeCouncilResultRequest;
 import com.daltweb.topicmanagement.dto.grade.*;
+import com.daltweb.topicmanagement.dto.period.RegistrationPeriodDto;
 import com.daltweb.topicmanagement.service.GradeAndResultService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -72,8 +73,15 @@ public class GradeAndResultController {
     @GetMapping("/results/student/my-results")
     @PreAuthorize("hasRole('STUDENT')")
     @Operation(summary = "Sinh viên tra cứu điểm và kết quả đánh giá của đề tài mình tham gia")
-    public ResponseEntity<ApiResponse<List<FinalResultDto>>> getMyStudentResults() {
-        List<FinalResultDto> list = gradeAndResultService.getMyStudentResults();
+    public ResponseEntity<ApiResponse<List<FinalResultDto>>> getMyStudentResults(@RequestParam(required = false) Long periodId) {
+        List<FinalResultDto> list = gradeAndResultService.getMyStudentResults(periodId);
         return ResponseEntity.ok(ApiResponse.success(list));
+    }
+
+    @GetMapping("/results/student/periods")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "Các đợt sinh viên đã đăng ký đề tài để tra cứu điểm")
+    public ResponseEntity<ApiResponse<List<RegistrationPeriodDto>>> getMyResultPeriods() {
+        return ResponseEntity.ok(ApiResponse.success(gradeAndResultService.getMyResultPeriods()));
     }
 }
