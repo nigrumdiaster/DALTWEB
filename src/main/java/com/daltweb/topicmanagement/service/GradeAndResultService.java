@@ -81,17 +81,16 @@ public class GradeAndResultService {
         }
 
         boolean isPrimary = Objects.equals(topic.getPrimaryAdvisor().getId(), currentUserId);
-        boolean isCo = topic.getCoAdvisor() != null && Objects.equals(topic.getCoAdvisor().getId(), currentUserId);
         boolean isAdmin = SecurityUtils.hasRole(RoleType.ROLE_ADMIN) || SecurityUtils.hasRole(RoleType.ROLE_DEAN);
 
-        if (!isPrimary && !isCo && !isAdmin) {
+        if (!isPrimary && !isAdmin) {
             throw new ForbiddenException("Bạn không phải là giảng viên hướng dẫn của đề tài này!");
         }
 
         StudentGroup group = groupRepository.findByTopicId(topic.getId())
                 .orElseThrow(() -> new BadRequestException("Đề tài chưa có nhóm sinh viên thực hiện!"));
 
-        GraderRole role = isPrimary ? GraderRole.ADVISOR : GraderRole.CO_ADVISOR;
+        GraderRole role = GraderRole.ADVISOR;
 
         Grade grade = gradeRepository.findByTopicIdAndGraderIdAndGraderRole(topic.getId(), currentUserId, role)
                 .orElse(Grade.builder()
@@ -241,6 +240,7 @@ public class GradeAndResultService {
     public List<GradeDto> getTopicGrades(Long topicId) {
         validateStudentTopicAccess(topicId);
         return gradeRepository.findByTopicId(topicId).stream()
+                .filter(g -> g.getGraderRole() != GraderRole.CO_ADVISOR)
                 .map(this::mapToGradeDto)
                 .collect(Collectors.toList());
     }
@@ -289,6 +289,7 @@ public class GradeAndResultService {
 
     public FinalResultDto mapToFinalResultDto(FinalResult res) {
         List<GradeDto> detailedGrades = gradeRepository.findByTopicId(res.getTopic().getId()).stream()
+                .filter(g -> g.getGraderRole() != GraderRole.CO_ADVISOR)
                 .map(this::mapToGradeDto)
                 .collect(Collectors.toList());
 

@@ -46,10 +46,6 @@ public class Topic {
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "password", "department"})
     private User primaryAdvisor;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "co_advisor_id")
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "password", "department"})
-    private User coAdvisor;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "approval_status", nullable = false, length = 20)
@@ -74,7 +70,7 @@ public class Topic {
 
     public Topic() {}
 
-    public Topic(Long id, String code, String titleVi, String titleEn, String description, String requirements, Integer maxStudents, Department department, RegistrationPeriod period, User primaryAdvisor, User coAdvisor, TopicApprovalStatus approvalStatus, String rejectionReason, User approvedBy, LocalDateTime approvedAt, Boolean isAssigned, LocalDateTime createdAt) {
+    public Topic(Long id, String code, String titleVi, String titleEn, String description, String requirements, Integer maxStudents, Department department, RegistrationPeriod period, User primaryAdvisor, TopicApprovalStatus approvalStatus, String rejectionReason, User approvedBy, LocalDateTime approvedAt, Boolean isAssigned, LocalDateTime createdAt) {
         this.id = id;
         this.code = code;
         this.titleVi = titleVi;
@@ -85,7 +81,6 @@ public class Topic {
         this.department = department;
         this.period = period;
         this.primaryAdvisor = primaryAdvisor;
-        this.coAdvisor = coAdvisor;
         this.approvalStatus = approvalStatus != null ? approvalStatus : TopicApprovalStatus.PENDING;
         this.rejectionReason = rejectionReason;
         this.approvedBy = approvedBy;
@@ -107,7 +102,6 @@ public class Topic {
         private Department department;
         private RegistrationPeriod period;
         private User primaryAdvisor;
-        private User coAdvisor;
         private TopicApprovalStatus approvalStatus = TopicApprovalStatus.PENDING;
         private String rejectionReason;
         private User approvedBy;
@@ -125,7 +119,6 @@ public class Topic {
         public Builder department(Department department) { this.department = department; return this; }
         public Builder period(RegistrationPeriod period) { this.period = period; return this; }
         public Builder primaryAdvisor(User primaryAdvisor) { this.primaryAdvisor = primaryAdvisor; return this; }
-        public Builder coAdvisor(User coAdvisor) { this.coAdvisor = coAdvisor; return this; }
         public Builder approvalStatus(TopicApprovalStatus approvalStatus) { this.approvalStatus = approvalStatus; return this; }
         public Builder rejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; return this; }
         public Builder approvedBy(User approvedBy) { this.approvedBy = approvedBy; return this; }
@@ -133,7 +126,7 @@ public class Topic {
         public Builder isAssigned(Boolean isAssigned) { this.isAssigned = isAssigned; return this; }
         public Builder createdAt(LocalDateTime createdAt) { this.createdAt = createdAt; return this; }
         public Topic build() {
-            return new Topic(id, code, titleVi, titleEn, description, requirements, maxStudents, department, period, primaryAdvisor, coAdvisor, approvalStatus, rejectionReason, approvedBy, approvedAt, isAssigned, createdAt);
+            return new Topic(id, code, titleVi, titleEn, description, requirements, maxStudents, department, period, primaryAdvisor, approvalStatus, rejectionReason, approvedBy, approvedAt, isAssigned, createdAt);
         }
     }
 
@@ -157,8 +150,6 @@ public class Topic {
     public void setPeriod(RegistrationPeriod period) { this.period = period; }
     public User getPrimaryAdvisor() { return primaryAdvisor; }
     public void setPrimaryAdvisor(User primaryAdvisor) { this.primaryAdvisor = primaryAdvisor; }
-    public User getCoAdvisor() { return coAdvisor; }
-    public void setCoAdvisor(User coAdvisor) { this.coAdvisor = coAdvisor; }
     public TopicApprovalStatus getApprovalStatus() { return approvalStatus; }
     public void setApprovalStatus(TopicApprovalStatus approvalStatus) { this.approvalStatus = approvalStatus; }
     public String getRejectionReason() { return rejectionReason; }

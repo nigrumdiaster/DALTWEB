@@ -22,9 +22,6 @@ public class TopicDto {
     private String primaryAdvisorName;
     private String primaryAdvisorEmail;
 
-    private Long coAdvisorId;
-    private String coAdvisorName;
-    private String coAdvisorEmail;
 
     private TopicApprovalStatus approvalStatus;
     private String rejectionReason;
@@ -40,7 +37,7 @@ public class TopicDto {
 
     public TopicDto() {}
 
-    public TopicDto(Long id, String code, String titleVi, String titleEn, String description, String requirements, Integer maxStudents, Long departmentId, String departmentName, Long periodId, String periodName, Long primaryAdvisorId, String primaryAdvisorName, String primaryAdvisorEmail, Long coAdvisorId, String coAdvisorName, String coAdvisorEmail, TopicApprovalStatus approvalStatus, String rejectionReason, Long approvedById, String approvedByName, LocalDateTime approvedAt, Boolean isAssigned, Long assignedGroupId, String assignedGroupName, LocalDateTime createdAt) {
+    public TopicDto(Long id, String code, String titleVi, String titleEn, String description, String requirements, Integer maxStudents, Long departmentId, String departmentName, Long periodId, String periodName, Long primaryAdvisorId, String primaryAdvisorName, String primaryAdvisorEmail, TopicApprovalStatus approvalStatus, String rejectionReason, Long approvedById, String approvedByName, LocalDateTime approvedAt, Boolean isAssigned, Long assignedGroupId, String assignedGroupName, LocalDateTime createdAt) {
         this.id = id;
         this.code = code;
         this.titleVi = titleVi;
@@ -55,9 +52,6 @@ public class TopicDto {
         this.primaryAdvisorId = primaryAdvisorId;
         this.primaryAdvisorName = primaryAdvisorName;
         this.primaryAdvisorEmail = primaryAdvisorEmail;
-        this.coAdvisorId = coAdvisorId;
-        this.coAdvisorName = coAdvisorName;
-        this.coAdvisorEmail = coAdvisorEmail;
         this.approvalStatus = approvalStatus;
         this.rejectionReason = rejectionReason;
         this.approvedById = approvedById;
@@ -86,9 +80,6 @@ public class TopicDto {
         private Long primaryAdvisorId;
         private String primaryAdvisorName;
         private String primaryAdvisorEmail;
-        private Long coAdvisorId;
-        private String coAdvisorName;
-        private String coAdvisorEmail;
         private TopicApprovalStatus approvalStatus;
         private String rejectionReason;
         private Long approvedById;
@@ -113,9 +104,6 @@ public class TopicDto {
         public Builder primaryAdvisorId(Long primaryAdvisorId) { this.primaryAdvisorId = primaryAdvisorId; return this; }
         public Builder primaryAdvisorName(String primaryAdvisorName) { this.primaryAdvisorName = primaryAdvisorName; return this; }
         public Builder primaryAdvisorEmail(String primaryAdvisorEmail) { this.primaryAdvisorEmail = primaryAdvisorEmail; return this; }
-        public Builder coAdvisorId(Long coAdvisorId) { this.coAdvisorId = coAdvisorId; return this; }
-        public Builder coAdvisorName(String coAdvisorName) { this.coAdvisorName = coAdvisorName; return this; }
-        public Builder coAdvisorEmail(String coAdvisorEmail) { this.coAdvisorEmail = coAdvisorEmail; return this; }
         public Builder approvalStatus(TopicApprovalStatus approvalStatus) { this.approvalStatus = approvalStatus; return this; }
         public Builder rejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; return this; }
         public Builder approvedById(Long approvedById) { this.approvedById = approvedById; return this; }
@@ -126,7 +114,7 @@ public class TopicDto {
         public Builder assignedGroupName(String assignedGroupName) { this.assignedGroupName = assignedGroupName; return this; }
         public Builder createdAt(LocalDateTime createdAt) { this.createdAt = createdAt; return this; }
         public TopicDto build() {
-            return new TopicDto(id, code, titleVi, titleEn, description, requirements, maxStudents, departmentId, departmentName, periodId, periodName, primaryAdvisorId, primaryAdvisorName, primaryAdvisorEmail, coAdvisorId, coAdvisorName, coAdvisorEmail, approvalStatus, rejectionReason, approvedById, approvedByName, approvedAt, isAssigned, assignedGroupId, assignedGroupName, createdAt);
+            return new TopicDto(id, code, titleVi, titleEn, description, requirements, maxStudents, departmentId, departmentName, periodId, periodName, primaryAdvisorId, primaryAdvisorName, primaryAdvisorEmail, approvalStatus, rejectionReason, approvedById, approvedByName, approvedAt, isAssigned, assignedGroupId, assignedGroupName, createdAt);
         }
     }
 
@@ -158,12 +146,6 @@ public class TopicDto {
     public void setPrimaryAdvisorName(String primaryAdvisorName) { this.primaryAdvisorName = primaryAdvisorName; }
     public String getPrimaryAdvisorEmail() { return primaryAdvisorEmail; }
     public void setPrimaryAdvisorEmail(String primaryAdvisorEmail) { this.primaryAdvisorEmail = primaryAdvisorEmail; }
-    public Long getCoAdvisorId() { return coAdvisorId; }
-    public void setCoAdvisorId(Long coAdvisorId) { this.coAdvisorId = coAdvisorId; }
-    public String getCoAdvisorName() { return coAdvisorName; }
-    public void setCoAdvisorName(String coAdvisorName) { this.coAdvisorName = coAdvisorName; }
-    public String getCoAdvisorEmail() { return coAdvisorEmail; }
-    public void setCoAdvisorEmail(String coAdvisorEmail) { this.coAdvisorEmail = coAdvisorEmail; }
     public TopicApprovalStatus getApprovalStatus() { return approvalStatus; }
     public void setApprovalStatus(TopicApprovalStatus approvalStatus) { this.approvalStatus = approvalStatus; }
     public String getRejectionReason() { return rejectionReason; }

@@ -26,7 +26,7 @@ Hệ thống được thiết kế theo chuẩn RESTful API với quy trình ngh
   * Thiết lập thời gian riêng cho từng giai đoạn, từng học kỳ, năm học.
   * Trưởng khoa mở/đóng đợt đăng ký và quản lý trạng thái.
 * **Quy trình Giai đoạn 1 (Phase 1) - Xây dựng & Phê duyệt đề tài:**
-  * Giảng viên đề xuất đề tài (hỗ trợ GVHD chính và GVHD phụ).
+  * Giảng viên đề xuất đề tài; mỗi đề tài có một giảng viên hướng dẫn.
   * Trưởng bộ môn phê duyệt sơ bộ đề tài theo chuyên môn.
   * Trưởng khoa phê duyệt chính thức và công bố danh sách đề tài ra toàn khoa.
 * **Quy trình Giai đoạn 2 (Phase 2) - Sinh viên đăng ký & Nộp báo cáo:**
@@ -198,7 +198,7 @@ sequenceDiagram
 * `GET /api/results/student/my-results?periodId=<id>` trả kết quả đã công bố của sinh viên trong đợt được chọn; yêu cầu đợt chưa đăng ký trả `403`. Bỏ `periodId` để lấy tất cả kết quả đã công bố của chính sinh viên.
 * Trình tự trạng thái: `DRAFT → PHASE1_LECTURER_REGISTRATION → PHASE1_REVIEWING → PHASE2_STUDENT_REGISTRATION → IN_PROGRESS → REVIEWING → COMPLETED`. KLTN phải qua `DEFENSE` sau `REVIEWING` trước khi hoàn thành. Không được nhảy bước, quay lại hoặc mở lại đợt đã kết thúc; có thể hủy đợt chưa kết thúc.
 * Trước khi mở GĐ2, toàn bộ đề tài phải được duyệt hoặc từ chối và phải có ít nhất một đề tài được duyệt. Hai khoảng thời gian đăng ký GV/SV không được chồng lấn. Đề xuất đề tài thực hiện trong GĐ1 đăng ký; phê duyệt thực hiện trong `PHASE1_REVIEWING`.
-* Chốt điểm yêu cầu đủ điểm GVHD chính và GVHD phụ nếu có. TLCN/KLTN bắt buộc có điểm phản biện. KLTN hoặc đề tài đã gán hội đồng phải có điểm của **tất cả** thành viên hội đồng hợp lệ (3–5 GV). Điểm phải nằm trong khoảng 0–10.
+* Chốt điểm yêu cầu có điểm của giảng viên hướng dẫn. TLCN/KLTN bắt buộc có điểm phản biện. KLTN hoặc đề tài đã gán hội đồng phải có điểm của **tất cả** thành viên hội đồng hợp lệ (3–5 GV). Điểm phải nằm trong khoảng 0–10.
 * Điểm hội đồng là trung bình cộng của các thành viên; điểm tổng kết là trung bình cộng các thành phần GVHD, phản biện, hội đồng áp dụng cho đề tài. Chốt điểm trong `REVIEWING`, riêng KLTN trong `DEFENSE`. Đợt chỉ hoàn thành khi tất cả nhóm đã đăng ký đề tài có kết quả được chốt và khớp điểm thành phần hiện tại.
 * Chỉ công bố khi đợt đã `COMPLETED`. Khi một kết quả chuyển từ chưa công bố sang đã công bố, hệ thống tạo email riêng cho từng thành viên nhóm có địa chỉ email, sử dụng cùng cấu hình `MAIL_*` bên dưới. Gọi công bố lại khi kết quả vẫn đang công bố không gửi trùng; thu hồi rồi công bố lại sẽ gửi lại.
 * Email kết quả được gửi nền **sau khi giao dịch công bố commit thành công**, dùng chung executor với email thông báo. Cần `MAIL_ENABLED=true` và cấu hình SMTP hợp lệ. Khi email tắt, kết quả vẫn được công bố trên hệ thống. Log `Result <id>: sent ...` ghi số thư SMTP chấp nhận; lỗi SMTP/hàng đợi đầy chưa có cơ chế gửi lại tự động, hàng đợi không lưu bền vững.

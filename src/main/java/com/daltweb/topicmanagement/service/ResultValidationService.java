@@ -44,9 +44,6 @@ public class ResultValidationService {
     public Scores calculate(Topic topic) {
         List<Grade> all = grades.findByTopicId(topic.getId());
         double advisor = requiredGrade(all, topic.getPrimaryAdvisor(), GraderRole.ADVISOR);
-        if (topic.getCoAdvisor() != null) {
-            advisor = (advisor + requiredGrade(all, topic.getCoAdvisor(), GraderRole.CO_ADVISOR)) / 2;
-        }
         PeriodType type = topic.getPeriod().getType();
         var reviewer = reviewers.findByTopicId(topic.getId()).orElse(null);
         Double reviewerScore = null;
@@ -89,8 +86,7 @@ public class ResultValidationService {
     }
 
     private boolean isAdvisor(Topic topic, User user) {
-        return Objects.equals(topic.getPrimaryAdvisor().getId(), user.getId())
-                || (topic.getCoAdvisor() != null && Objects.equals(topic.getCoAdvisor().getId(), user.getId()));
+        return Objects.equals(topic.getPrimaryAdvisor().getId(), user.getId());
     }
 
     private double requiredGrade(List<Grade> all, User grader, GraderRole role) {

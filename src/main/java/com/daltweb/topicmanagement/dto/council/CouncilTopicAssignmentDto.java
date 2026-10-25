@@ -9,8 +9,6 @@ public class CouncilTopicAssignmentDto {
     private String topicTitleVi;
     private Long primaryAdvisorId;
     private String primaryAdvisorName;
-    private Long coAdvisorId;
-    private String coAdvisorName;
 
     private Long studentGroupId;
     private String studentGroupName;
@@ -20,15 +18,13 @@ public class CouncilTopicAssignmentDto {
 
     public CouncilTopicAssignmentDto() {}
 
-    public CouncilTopicAssignmentDto(Long id, Long topicId, String topicCode, String topicTitleVi, Long primaryAdvisorId, String primaryAdvisorName, Long coAdvisorId, String coAdvisorName, Long studentGroupId, String studentGroupName, LocalDateTime defenseTime, String notes) {
+    public CouncilTopicAssignmentDto(Long id, Long topicId, String topicCode, String topicTitleVi, Long primaryAdvisorId, String primaryAdvisorName, Long studentGroupId, String studentGroupName, LocalDateTime defenseTime, String notes) {
         this.id = id;
         this.topicId = topicId;
         this.topicCode = topicCode;
         this.topicTitleVi = topicTitleVi;
         this.primaryAdvisorId = primaryAdvisorId;
         this.primaryAdvisorName = primaryAdvisorName;
-        this.coAdvisorId = coAdvisorId;
-        this.coAdvisorName = coAdvisorName;
         this.studentGroupId = studentGroupId;
         this.studentGroupName = studentGroupName;
         this.defenseTime = defenseTime;
@@ -44,8 +40,6 @@ public class CouncilTopicAssignmentDto {
         private String topicTitleVi;
         private Long primaryAdvisorId;
         private String primaryAdvisorName;
-        private Long coAdvisorId;
-        private String coAdvisorName;
         private Long studentGroupId;
         private String studentGroupName;
         private LocalDateTime defenseTime;
@@ -57,14 +51,12 @@ public class CouncilTopicAssignmentDto {
         public Builder topicTitleVi(String topicTitleVi) { this.topicTitleVi = topicTitleVi; return this; }
         public Builder primaryAdvisorId(Long primaryAdvisorId) { this.primaryAdvisorId = primaryAdvisorId; return this; }
         public Builder primaryAdvisorName(String primaryAdvisorName) { this.primaryAdvisorName = primaryAdvisorName; return this; }
-        public Builder coAdvisorId(Long coAdvisorId) { this.coAdvisorId = coAdvisorId; return this; }
-        public Builder coAdvisorName(String coAdvisorName) { this.coAdvisorName = coAdvisorName; return this; }
         public Builder studentGroupId(Long studentGroupId) { this.studentGroupId = studentGroupId; return this; }
         public Builder studentGroupName(String studentGroupName) { this.studentGroupName = studentGroupName; return this; }
         public Builder defenseTime(LocalDateTime defenseTime) { this.defenseTime = defenseTime; return this; }
         public Builder notes(String notes) { this.notes = notes; return this; }
         public CouncilTopicAssignmentDto build() {
-            return new CouncilTopicAssignmentDto(id, topicId, topicCode, topicTitleVi, primaryAdvisorId, primaryAdvisorName, coAdvisorId, coAdvisorName, studentGroupId, studentGroupName, defenseTime, notes);
+            return new CouncilTopicAssignmentDto(id, topicId, topicCode, topicTitleVi, primaryAdvisorId, primaryAdvisorName, studentGroupId, studentGroupName, defenseTime, notes);
         }
     }
 
@@ -80,10 +72,6 @@ public class CouncilTopicAssignmentDto {
     public void setPrimaryAdvisorId(Long primaryAdvisorId) { this.primaryAdvisorId = primaryAdvisorId; }
     public String getPrimaryAdvisorName() { return primaryAdvisorName; }
     public void setPrimaryAdvisorName(String primaryAdvisorName) { this.primaryAdvisorName = primaryAdvisorName; }
-    public Long getCoAdvisorId() { return coAdvisorId; }
-    public void setCoAdvisorId(Long coAdvisorId) { this.coAdvisorId = coAdvisorId; }
-    public String getCoAdvisorName() { return coAdvisorName; }
-    public void setCoAdvisorName(String coAdvisorName) { this.coAdvisorName = coAdvisorName; }
     public Long getStudentGroupId() { return studentGroupId; }
     public void setStudentGroupId(Long studentGroupId) { this.studentGroupId = studentGroupId; }
     public String getStudentGroupName() { return studentGroupName; }

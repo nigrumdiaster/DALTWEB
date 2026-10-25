@@ -18,14 +18,13 @@ public class TopicUpdateRequest {
     private String requirements;
 
     @NotNull(message = "Số lượng sinh viên tối đa không được để trống")
-    @Min(value = 1, message = "Số lượng sinh viên tối thiểu là 1")
-    @Max(value = 3, message = "Số lượng sinh viên tối đa là 3")
+    @Min(value = 3, message = "Số lượng sinh viên tối thiểu là 3")
+    @Max(value = 5, message = "Số lượng sinh viên tối đa là 5")
     private Integer maxStudents = 3;
 
     @NotNull(message = "Bộ môn không được để trống")
     private Long departmentId;
 
-    private Long coAdvisorId;
 
     public TopicUpdateRequest() {}
 
@@ -41,6 +40,4 @@ public class TopicUpdateRequest {
     public void setMaxStudents(Integer maxStudents) { this.maxStudents = maxStudents; }
     public Long getDepartmentId() { return departmentId; }
     public void setDepartmentId(Long departmentId) { this.departmentId = departmentId; }
-    public Long getCoAdvisorId() { return coAdvisorId; }
-    public void setCoAdvisorId(Long coAdvisorId) { this.coAdvisorId = coAdvisorId; }
 }

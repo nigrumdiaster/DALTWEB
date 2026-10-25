@@ -128,13 +128,10 @@ class DefenseCouncilUpdateIntegrationTest {
         assertThatThrownBy(() -> service.updateCouncil(council.getId(), request)).isInstanceOf(BadRequestException.class);
     }
 
-    @Test void rejectsAdvisorAndCoAdvisorConflicts() {
+    @Test void rejectsAdvisorConflict() {
         Topic topic = assignedTopic(replacement);
         var request = update();
         request.getMembers().set(2, input(replacement, CouncilRole.MEMBER));
-        assertThatThrownBy(() -> service.updateCouncil(council.getId(), request)).isInstanceOf(BadRequestException.class);
-        topic.setPrimaryAdvisor(lecturer("advisor"));
-        topic.setCoAdvisor(replacement);
         assertThatThrownBy(() -> service.updateCouncil(council.getId(), request)).isInstanceOf(BadRequestException.class);
     }
 

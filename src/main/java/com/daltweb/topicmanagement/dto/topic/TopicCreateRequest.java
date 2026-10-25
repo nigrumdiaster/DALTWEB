@@ -18,8 +18,8 @@ public class TopicCreateRequest {
     private String requirements;
 
     @NotNull(message = "Số lượng sinh viên tối đa không được để trống")
-    @Min(value = 1, message = "Số lượng sinh viên tối thiểu là 1")
-    @Max(value = 3, message = "Số lượng sinh viên tối đa là 3")
+    @Min(value = 3, message = "Số lượng sinh viên tối thiểu là 3")
+    @Max(value = 5, message = "Số lượng sinh viên tối đa là 5")
     private Integer maxStudents = 3;
 
     @NotNull(message = "Bộ môn không được để trống")
@@ -28,7 +28,6 @@ public class TopicCreateRequest {
     @NotNull(message = "Đợt đăng ký không được để trống")
     private Long periodId;
 
-    private Long coAdvisorId;
 
     public TopicCreateRequest() {}
 
@@ -46,6 +45,4 @@ public class TopicCreateRequest {
     public void setDepartmentId(Long departmentId) { this.departmentId = departmentId; }
     public Long getPeriodId() { return periodId; }
     public void setPeriodId(Long periodId) { this.periodId = periodId; }
-    public Long getCoAdvisorId() { return coAdvisorId; }
-    public void setCoAdvisorId(Long coAdvisorId) { this.coAdvisorId = coAdvisorId; }
 }

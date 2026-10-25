@@ -82,7 +82,6 @@ class TopicServiceTest {
         var approvedAt = topic.getApprovedAt();
         service.updateTopic(10L, update());
         assertThat(topic.getTitleVi()).isEqualTo("Updated title");
-        assertThat(topic.getCoAdvisor()).isNull();
         assertThat(topic.getApprovalStatus()).isEqualTo(TopicApprovalStatus.APPROVED);
         assertThat(topic.getApprovedAt()).isEqualTo(approvedAt);
         assertThat(topic.getApprovedBy().getId()).isEqualTo(99L);

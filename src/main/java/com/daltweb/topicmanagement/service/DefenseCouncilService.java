@@ -140,8 +140,7 @@ public class DefenseCouncilService {
             throw new BadRequestException("Hội đồng đã có điểm; không thể đổi thành viên hoặc vai trò!");
         for (CouncilTopicAssignment assignment : council.getAssignedTopics()) {
             Topic topic = assignment.getTopic();
-            if (requested.containsKey(topic.getPrimaryAdvisor().getId())
-                    || (topic.getCoAdvisor() != null && requested.containsKey(topic.getCoAdvisor().getId())))
+            if (requested.containsKey(topic.getPrimaryAdvisor().getId()))
                 throw new BadRequestException("GVHD không được tham gia hội đồng chấm đề tài mình hướng dẫn!");
         }
         Map<Long, User> lecturers = new HashMap<>();
@@ -196,14 +195,10 @@ public class DefenseCouncilService {
             }
 
             if (councilLecturerIds.contains(topic.getPrimaryAdvisor().getId())) {
-                throw new BadRequestException(String.format("Không thể gán đề tài '%s' cho hội đồng vì GVHD chính (%s) là thành viên của hội đồng này!",
+                throw new BadRequestException(String.format("Không thể gán đề tài '%s' cho hội đồng vì GVHD (%s) là thành viên của hội đồng này!",
                         topic.getTitleVi(), topic.getPrimaryAdvisor().getFullName()));
             }
 
-            if (topic.getCoAdvisor() != null && councilLecturerIds.contains(topic.getCoAdvisor().getId())) {
-                throw new BadRequestException(String.format("Không thể gán đề tài '%s' cho hội đồng vì GV đồng hướng dẫn (%s) là thành viên của hội đồng này!",
-                        topic.getTitleVi(), topic.getCoAdvisor().getFullName()));
-            }
 
             var existingCouncilAssignment = assignmentRepository.findByTopicId(topicId);
             if (existingCouncilAssignment.isPresent() && !Objects.equals(existingCouncilAssignment.get().getCouncil().getId(), councilId)) {
@@ -257,8 +252,7 @@ public class DefenseCouncilService {
             throw new BadRequestException("Đề tài này chưa được phân công bảo vệ tại hội đồng này!");
         }
 
-        if (Objects.equals(topic.getPrimaryAdvisor().getId(), currentUserId) ||
-            (topic.getCoAdvisor() != null && Objects.equals(topic.getCoAdvisor().getId(), currentUserId))) {
+        if (Objects.equals(topic.getPrimaryAdvisor().getId(), currentUserId)) {
             throw new BadRequestException("Bạn là GVHD của đề tài này nên không thể chấm điểm!");
         }
 
@@ -313,8 +307,6 @@ public class DefenseCouncilService {
                         .topicTitleVi(a.getTopic().getTitleVi())
                         .primaryAdvisorId(a.getTopic().getPrimaryAdvisor().getId())
                         .primaryAdvisorName(a.getTopic().getPrimaryAdvisor().getFullName())
-                        .coAdvisorId(a.getTopic().getCoAdvisor() != null ? a.getTopic().getCoAdvisor().getId() : null)
-                        .coAdvisorName(a.getTopic().getCoAdvisor() != null ? a.getTopic().getCoAdvisor().getFullName() : null)
                         .studentGroupId(a.getStudentGroup() != null ? a.getStudentGroup().getId() : null)
                         .studentGroupName(a.getStudentGroup() != null ? a.getStudentGroup().getName() : null)
                         .defenseTime(a.getDefenseTime())

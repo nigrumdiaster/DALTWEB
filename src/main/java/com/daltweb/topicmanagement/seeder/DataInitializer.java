@@ -269,7 +269,6 @@ public class DataInitializer implements CommandLineRunner {
                 .department(deptCnpm)
                 .period(periodKltn)
                 .primaryAdvisor(gv1)
-                .coAdvisor(gv2)
                 .approvalStatus(TopicApprovalStatus.APPROVED)
                 .approvedBy(headCnpm)
                 .approvedAt(now.minusDays(3))

@@ -20,9 +20,9 @@ public interface StudentGroupRepository extends JpaRepository<StudentGroup, Long
     Optional<StudentGroup> findByTopicId(Long topicId);
     Optional<StudentGroup> findByCode(String code);
 
-    @Query("SELECT g FROM StudentGroup g LEFT JOIN g.topic t LEFT JOIN t.coAdvisor co WHERE " +
+    @Query("SELECT g FROM StudentGroup g LEFT JOIN g.topic t WHERE " +
            "(:periodId IS NULL OR g.period.id = :periodId) AND (:status IS NULL OR g.status = :status) AND " +
-           "(:advisorId IS NULL OR t.primaryAdvisor.id = :advisorId OR co.id = :advisorId) AND " +
+           "(:advisorId IS NULL OR t.primaryAdvisor.id = :advisorId) AND " +
            "(LOWER(g.name) LIKE :pattern OR LOWER(g.code) LIKE :pattern OR LOWER(t.titleVi) LIKE :pattern OR " +
            "EXISTS (SELECT m.id FROM GroupMember m WHERE m.group = g AND " +
            "(LOWER(m.student.fullName) LIKE :pattern OR LOWER(m.student.code) LIKE :pattern)))")

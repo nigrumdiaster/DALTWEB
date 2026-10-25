@@ -46,10 +46,12 @@ class ResultValidationServiceTest {
         assertThatThrownBy(() -> service.calculate(topic)).isInstanceOf(BadRequestException.class);
     }
 
-    @Test void requiresCoAdvisorGradeWhenAssigned() {
+    @Test void ignoresLegacyCoAdvisorGrades() {
         advisorScore();
-        topic.setCoAdvisor(User.builder().id(4L).build());
-        assertThatThrownBy(() -> service.calculate(topic)).isInstanceOf(BadRequestException.class);
+        marks.add(Grade.builder().grader(User.builder().id(4L).build())
+                .graderRole(GraderRole.CO_ADVISOR).score(2.0).build());
+        assertThat(service.calculate(topic).advisor()).isEqualTo(8);
+        assertThat(service.calculate(topic).total()).isEqualTo(8);
     }
 
     @ParameterizedTest @ValueSource(doubles = {-1, 11, Double.NaN, Double.POSITIVE_INFINITY})

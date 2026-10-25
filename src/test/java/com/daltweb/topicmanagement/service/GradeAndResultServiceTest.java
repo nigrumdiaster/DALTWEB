@@ -71,6 +71,18 @@ class GradeAndResultServiceTest {
 
     @AfterEach void clear() { SecurityContextHolder.clearContext(); }
 
+    @Test void onlyTheAssignedAdvisorCanSubmitAdvisorGrades() {
+        authenticate(RoleType.ROLE_LECTURER);
+        period.setStatus(PeriodStatus.IN_PROGRESS);
+        topic.setPrimaryAdvisor(User.builder().id(2L).build());
+        when(users.findById(1L)).thenReturn(Optional.of(User.builder().id(1L).build()));
+        when(topics.findById(20L)).thenReturn(Optional.of(topic));
+        var request = new com.daltweb.topicmanagement.dto.grade.AdvisorGradeRequest();
+        request.setTopicId(20L);
+        assertThatThrownBy(() -> service.gradeAsAdvisor(request)).isInstanceOf(ForbiddenException.class);
+        verifyNoInteractions(grades);
+    }
+
     @Test void studentCannotQueryUnregisteredPeriodThroughEitherRoute() {
         assertThatThrownBy(() -> service.getResultsByPeriod(99L, PAGE)).isInstanceOf(ForbiddenException.class);
         assertThatThrownBy(() -> service.getMyStudentResults(99L, PAGE)).isInstanceOf(ForbiddenException.class);

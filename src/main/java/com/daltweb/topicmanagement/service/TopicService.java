@@ -101,14 +101,6 @@ public class TopicService {
         User primaryAdvisor = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin giảng viên hướng dẫn"));
 
-        User coAdvisor = null;
-        if (request.getCoAdvisorId() != null) {
-            if (Objects.equals(request.getCoAdvisorId(), currentUserId)) {
-                throw new BadRequestException("GVHD phụ không thể trùng với GVHD chính!");
-            }
-            coAdvisor = userRepository.findById(request.getCoAdvisorId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy giảng viên đồng hướng dẫn"));
-        }
 
         long count = topicRepository.count() + 1;
         String topicCode = String.format("DT-%s-%03d", department.getCode(), count);
@@ -123,7 +115,6 @@ public class TopicService {
                 .department(department)
                 .period(period)
                 .primaryAdvisor(primaryAdvisor)
-                .coAdvisor(coAdvisor)
                 .approvalStatus(TopicApprovalStatus.PENDING)
                 .isAssigned(false)
                 .build();
@@ -159,14 +150,6 @@ public class TopicService {
         Department department = departmentRepository.findById(request.getDepartmentId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bộ môn"));
 
-        User coAdvisor = null;
-        if (request.getCoAdvisorId() != null) {
-            if (Objects.equals(request.getCoAdvisorId(), topic.getPrimaryAdvisor().getId())) {
-                throw new BadRequestException("GVHD phụ không thể trùng với GVHD chính!");
-            }
-            coAdvisor = userRepository.findById(request.getCoAdvisorId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy giảng viên đồng hướng dẫn"));
-        }
 
         topic.setTitleVi(request.getTitleVi());
         topic.setTitleEn(request.getTitleEn());
@@ -174,7 +157,6 @@ public class TopicService {
         topic.setRequirements(request.getRequirements());
         topic.setMaxStudents(request.getMaxStudents());
         topic.setDepartment(department);
-        topic.setCoAdvisor(coAdvisor);
 
         if (topic.getApprovalStatus() == TopicApprovalStatus.APPROVED && !isAdmin) {
             topic.setApprovalStatus(TopicApprovalStatus.PENDING);
@@ -274,9 +256,6 @@ public class TopicService {
                 .primaryAdvisorId(topic.getPrimaryAdvisor() != null ? topic.getPrimaryAdvisor().getId() : null)
                 .primaryAdvisorName(topic.getPrimaryAdvisor() != null ? topic.getPrimaryAdvisor().getFullName() : null)
                 .primaryAdvisorEmail(topic.getPrimaryAdvisor() != null ? topic.getPrimaryAdvisor().getEmail() : null)
-                .coAdvisorId(topic.getCoAdvisor() != null ? topic.getCoAdvisor().getId() : null)
-                .coAdvisorName(topic.getCoAdvisor() != null ? topic.getCoAdvisor().getFullName() : null)
-                .coAdvisorEmail(topic.getCoAdvisor() != null ? topic.getCoAdvisor().getEmail() : null)
                 .approvalStatus(topic.getApprovalStatus())
                 .rejectionReason(topic.getRejectionReason())
                 .approvedById(topic.getApprovedBy() != null ? topic.getApprovedBy().getId() : null)

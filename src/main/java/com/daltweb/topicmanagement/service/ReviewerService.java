@@ -75,8 +75,7 @@ public class ReviewerService {
         User reviewer = userRepository.findById(request.getReviewerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy giảng viên phản biện"));
 
-        if (Objects.equals(topic.getPrimaryAdvisor().getId(), reviewer.getId()) ||
-            (topic.getCoAdvisor() != null && Objects.equals(topic.getCoAdvisor().getId(), reviewer.getId()))) {
+        if (Objects.equals(topic.getPrimaryAdvisor().getId(), reviewer.getId())) {
             throw new BadRequestException("Giảng viên hướng dẫn không được phân công làm giảng viên phản biện cho chính đề tài của mình!");
         }
 

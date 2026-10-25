@@ -16,16 +16,16 @@ public interface TopicRepository extends JpaRepository<Topic, Long> {
     @Query("SELECT t.period.id AS periodId, COUNT(t) AS total FROM Topic t WHERE t.period.id IN :ids GROUP BY t.period.id")
     List<PeriodCount> countForPeriods(@Param("ids") Collection<Long> ids);
 
-    @Query("SELECT t FROM Topic t LEFT JOIN t.coAdvisor co WHERE " +
+    @Query("SELECT t FROM Topic t WHERE " +
            "(:periodId IS NULL OR t.period.id = :periodId) AND " +
            "(:departmentId IS NULL OR t.department.id = :departmentId) AND " +
            "(:status IS NULL OR t.approvalStatus = :status) AND " +
            "(:isAssigned IS NULL OR t.isAssigned = :isAssigned) AND " +
-           "(:advisorId IS NULL OR t.primaryAdvisor.id = :advisorId OR co.id = :advisorId) AND " +
+           "(:advisorId IS NULL OR t.primaryAdvisor.id = :advisorId) AND " +
            "(LOWER(t.code) LIKE :pattern OR LOWER(t.titleVi) LIKE :pattern OR " +
            "LOWER(t.titleEn) LIKE :pattern OR LOWER(t.primaryAdvisor.fullName) LIKE :pattern OR " +
-           "LOWER(co.fullName) LIKE :pattern OR LOWER(t.department.name) LIKE :pattern)")
-    @EntityGraph(attributePaths = {"department", "period", "primaryAdvisor", "coAdvisor", "approvedBy"})
+           "LOWER(t.department.name) LIKE :pattern)")
+    @EntityGraph(attributePaths = {"department", "period", "primaryAdvisor", "approvedBy"})
     Page<Topic> filterTopicsByPattern(@Param("periodId") Long periodId, @Param("departmentId") Long departmentId,
             @Param("status") TopicApprovalStatus status, @Param("isAssigned") Boolean isAssigned,
             @Param("pattern") String pattern, @Param("advisorId") Long advisorId, Pageable pageable);
